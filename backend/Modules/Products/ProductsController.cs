@@ -38,6 +38,10 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> GetProductsByFilter([FromQuery] ProductsFilterRequest filter)
     {
         var products = await _productsService.GetProductsByFilter(filter);
+        if(products == null || products.Count == 0)
+        {
+            return NotFound("No products found matching the filter criteria.");
+        }
         return Ok(products);
     }
     // Endpoint to get product details by code
@@ -45,6 +49,10 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> GetProductsDetailsByCode(string code)
     {
         var products = await _productsService.GetProductsDetailsByCode(code);
+        if(products == null || products.Count == 0)
+        {
+            return NotFound("No products found with the specified code.");
+        }
         return Ok(products);
     }
     // Endpoint to delete product by id

@@ -30,9 +30,11 @@ function ListProducts(){
             if(response.ok){
                 const productsData = await response.json();
                 setProducts(productsData);
+            } else {
+                throw new Error("Erro ao buscar produtos");
             }
-        } catch {
-            setErrorMsg("Erro ao buscar produtos")
+        } catch (err: unknown) {
+            setErrorMsg(err instanceof Error ? err.message : String(err ?? "Erro ao buscar produtos"));
         }
     }
     useEffect(() => {
@@ -57,6 +59,7 @@ function ListProducts(){
     }
     // handle for show details of products
     const handleDetails = async (code: string) => {
+        setErrorMsg("");
         try{
             const response = await fetch(`http://localhost:5144/api/products/details/${code}`);
             if(response.ok){
@@ -68,12 +71,16 @@ function ListProducts(){
                 }
                 setDetails(detailsData);
                 setShowPopup(true);
+            } else {
+                throw new Error("Erro ao buscar detalhes");
             }
-        } catch {
-            setErrorMsg("Erro ao buscar detalhes");
+        } catch (err: unknown) {
+            setErrorMsg(err instanceof Error ? err.message : String(err ?? "Erro ao buscar detalhes"));
         }
     }
+    // handle for delete product details by id, after delete, update details by code again
     const handleDelete = async (id: number, code: string) => {
+        setErrorMsg("");
         try{
             const response = await fetch(`http://localhost:5144/api/products/delete/${id}`, {
                 method: "DELETE"
@@ -81,9 +88,11 @@ function ListProducts(){
             if(response.ok){ // comandos para atualizar a lista
                 fetchProducts(page) // página principal
                 handleDetails(code); //detalhes  
+            } else {
+                throw new Error("Erro ao excluir produto");
             }
-        } catch{
-            setErrorMsg("Erro ao excluir produto");
+        } catch (err: unknown) {
+            setErrorMsg(err instanceof Error ? err.message : String(err ?? "Erro ao excluir produto"));
         }
     }
     return (
@@ -95,7 +104,7 @@ function ListProducts(){
                 <input type="text" placeholder="Ano" value={filterYear} onChange={(event) => setFilterYear(event.target.value)}/>
                 <button onClick={handleFilter}>Filtrar</button>
             </div>
-            {errorMsg && <p>{errorMsg}</p>}
+            {errorMsg && <p className="error-message">{errorMsg}</p>}
             <table>
                 <thead>
                     <tr>
@@ -123,7 +132,7 @@ function ListProducts(){
                 <span>Página {page}</span>
                 <button onClick={handleNextPage} disabled={products.length < 10}>Próxima</button>
             </div>
-            {showPopup /*showPopup true or false (mostra e fecha)*/ && (
+            {showPopup /*showPopup (detalhes dos produtos) true or false (mostra e fecha)*/ && (
                 <div className="popup-overlay">
                     <div className="popup">
                         <h2>Detalhes do produto</h2>

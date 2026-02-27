@@ -118,7 +118,7 @@ public class ProductsRepository : IProductsRepository
         }
         return products;
     }
-    // 
+    // Method to delete a product by product id
     public async Task<bool> DeleteProductById(int productId)
     {
         try
