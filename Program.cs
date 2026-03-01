@@ -1,8 +1,10 @@
 using DotNetEnv;
-using Csinv.Products.Repository;
-using Csinv.Products.DTOs;
-using Csinv.Products.Interfaces;
-using Csinv.Products.Service;
+using Csinv.InventoryProducts.Repository;
+using Csinv.InventoryProducts.Interfaces;
+using Csinv.InventoryProducts.Service;
+using Csinv.InventorySessions.Interfaces;
+using Csinv.InventorySessions.Service;
+using Csinv.InventorySessions.Repository;
 
 Env.Load("backend/.env");
 
@@ -19,8 +21,10 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
-builder.Services.AddScoped<IProductsRepository, ProductsRepository>();
-builder.Services.AddScoped<IProductsService, ProductsService>();
+builder.Services.AddScoped<IInventoryProductsRepository, InventoryProductsRepository>();
+builder.Services.AddScoped<IInventoryProductsService, InventoryProductsService>();
+builder.Services.AddScoped<ISessionRepository, SessionRepository>();
+builder.Services.AddScoped<ISessionService, SessionService>();
 
 var app = builder.Build();
 app.UseCors("AllowFrontend");

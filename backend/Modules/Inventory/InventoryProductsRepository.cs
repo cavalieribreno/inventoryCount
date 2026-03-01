@@ -1,25 +1,25 @@
 using MySql.Data.MySqlClient;
 using Csinv.Database;
-using Csinv.Products.Interfaces;
-using Csinv.Products.DTOs;
+using Csinv.InventoryProducts.Interfaces;
+using Csinv.InventoryProducts.DTOs;
 
-namespace Csinv.Products.Repository;
+namespace Csinv.InventoryProducts.Repository;
 
 // Repository class for product operations
-public class ProductsRepository : IProductsRepository
+public class InventoryProductsRepository : IInventoryProductsRepository
 {
-    // Method to insert a product into the database
-    public async Task<bool> InsertProduct(string productCode, int productQuantity, int year)
+    // Method to insert a product into the database inventory table
+    public async Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId)
     {
         try
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdInsertProduct = @"INSERT INTO cs_inventory (pro_code, inv_quantity, inv_year) VALUES (@productCode, @productQuantity, @year)";
+            string cmdInsertProduct = @"INSERT INTO cs_inventory (pro_code, inv_quantity, ses_id) VALUES (@productCode, @productQuantity, @sessionId)";
             using MySqlCommand command = new MySqlCommand(cmdInsertProduct, connection);
             command.Parameters.AddWithValue("@productCode", productCode);
             command.Parameters.AddWithValue("@productQuantity", productQuantity);
-            command.Parameters.AddWithValue("@year", year);
+            command.Parameters.AddWithValue("@sessionId", sessionId);
             await command.ExecuteNonQueryAsync();
 
             return true;
@@ -42,7 +42,7 @@ public class ProductsRepository : IProductsRepository
             // Prepare the command with dynamic query
             using MySqlCommand command = new MySqlCommand();
             // Base SQL query
-            string cmdSelectProducts = @"SELECT inv_year, pro_code, pro_name, total_quantity FROM vw_inventory_items WHERE 1=1";
+            string cmdSelectProducts = @"SELECT ses_year, pro_code, pro_name, total_quantity FROM vw_inventory_items WHERE 1=1";
         
             // Dinamic query construction based on filter
             if (!string.IsNullOrEmpty(filter.ProductName))
@@ -57,7 +57,7 @@ public class ProductsRepository : IProductsRepository
             }
             if(filter.Year.HasValue)
             {
-                cmdSelectProducts += " AND inv_year = @year";
+                cmdSelectProducts += " AND ses_year = @year";
                 command.Parameters.AddWithValue("@year", filter.Year.Value);
             }
             // Finalize command setup
@@ -79,7 +79,7 @@ public class ProductsRepository : IProductsRepository
                 {
                     ProductName = reader["pro_name"].ToString(),
                     Code = reader["pro_code"].ToString(),
-                    Year = Convert.ToInt32(reader["inv_year"]),
+                    Year = Convert.ToInt32(reader["ses_year"]),
                     TotalQuantity = Convert.ToInt32(reader["total_quantity"])
                 });
             }
@@ -97,7 +97,11 @@ public class ProductsRepository : IProductsRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdSelectProducts = @"SELECT inv_id, pro_code, inv_quantity, inv_year, inv_date_added FROM cs_inventory WHERE pro_code = @code";
+            string cmdSelectProducts = @"SELECT i.inv_id, i.pro_code, i.inv_quantity, s.ses_year, i.inv_date_added 
+            FROM cs_inventory i
+            INNER JOIN cs_inventory_sessions s
+            ON i.ses_id = s.ses_id 
+            WHERE i.pro_code = @code";
             using MySqlCommand command = new MySqlCommand(cmdSelectProducts, connection);
             command.Parameters.AddWithValue("@code", code);
             using var reader = await command.ExecuteReaderAsync();
@@ -108,7 +112,7 @@ public class ProductsRepository : IProductsRepository
                     Id = Convert.ToInt32(reader["inv_id"]),
                     Code = reader["pro_code"].ToString(),
                     Quantity = Convert.ToInt32(reader["inv_quantity"]),
-                    Year = Convert.ToInt32(reader["inv_year"]),
+                    Year = Convert.ToInt32(reader["ses_year"]),
                     DateHour = Convert.ToDateTime(reader["inv_date_added"])
                 });
             }

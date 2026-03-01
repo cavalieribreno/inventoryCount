@@ -5,7 +5,7 @@ function InsertProducts() {
   // states to save form data
   const [code, setCode] = useState("");
   const [quantity, setQuantity] = useState(0);
-  const [year, setYear] = useState(2025);
+  const [session, setSessionId] = useState(0);
 
   // function to handle form submission and send data to backend
   const handleSubmit = async (event: React.SyntheticEvent) => {
@@ -19,14 +19,14 @@ function InsertProducts() {
         body: JSON.stringify({
           code: code,
           quantity: quantity,
-          year: year
+          sessionId: session
         })
       });
       if (response.ok) {
         alert("Produto cadastrado com sucesso!");
         setCode("");
         setQuantity(0);
-        setYear(2025);
+        setSessionId(0);
       } else {
         alert("Erro ao cadastrar produto.");
       }
@@ -48,8 +48,8 @@ function InsertProducts() {
           <input type="number" value={quantity} onChange={(event) => setQuantity(Number(event.target.value))}/>
         </div>
         <div>
-          <label> Ano:</label>
-          <input type="number" value={year}onChange={(event) => setYear(Number(event.target.value))}/>
+          <label> Sessão:</label>
+          <input type="number" value={session}onChange={(event) => setSessionId(Number(event.target.value))}/>
         </div>
         <button type="submit">Cadastrar</button>
       </form>

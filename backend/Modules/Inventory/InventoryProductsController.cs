@@ -1,29 +1,29 @@
-using Csinv.Products.DTOs;
-using Csinv.Products.Interfaces;
+using Csinv.InventoryProducts.DTOs;
+using Csinv.InventoryProducts.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Csinv.Products.Controller;
+namespace Csinv.InventoryProducts.Controller;
 
 [ApiController]
 [Route("api/products")]
 // Controller class for product-related endpoints
-public class ProductsController : ControllerBase
+public class InventoryProductsController : ControllerBase
 {
     // Dependency injection of the products service
-    private readonly IProductsService _productsService;
-    public ProductsController(IProductsService productsService)
+    private readonly IInventoryProductsService _productsService;
+    public InventoryProductsController(IInventoryProductsService productsService)
     {
         _productsService = productsService;
     }
     // Endpoint to insert a new product
     [HttpPost("insert")]
-    public async Task<IActionResult> InsertProduct([FromBody] ProductsInsertRequest productRequest)
+    public async Task<IActionResult> InventoryInsertProduct([FromBody] ProductsInsertRequest productRequest)
     {
-        if (!_productsService.ValidateProduct(productRequest.Code!, productRequest.Quantity, productRequest.Year))
+        if (!_productsService.ValidateProduct(productRequest.Code!, productRequest.Quantity, productRequest.SessionId))
         {
             return BadRequest("Invalid product code, quantity or year.");
         }
-        var result = await _productsService.InsertProduct(productRequest.Code!, productRequest.Quantity, productRequest.Year);
+        var result = await _productsService.InventoryInsertProduct(productRequest.Code!, productRequest.Quantity, productRequest.SessionId);
         if (result)
         {
             return Ok("Product inserted successfully.");

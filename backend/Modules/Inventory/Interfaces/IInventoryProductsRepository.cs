@@ -1,10 +1,10 @@
-using Csinv.Products.DTOs;
+using Csinv.InventoryProducts.DTOs;
 
-namespace Csinv.Products.Interfaces;
+namespace Csinv.InventoryProducts.Interfaces;
 // Interface for product repository operations
-public interface IProductsRepository
+public interface IInventoryProductsRepository
 {
-    Task<bool> InsertProduct(string productCode, int productQuantity, int year);
+    Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId);
     Task<List<ProductsFilterResponse>> GetProductsByFilter(ProductsFilterRequest filter);
     Task<List<ProductsDetailsResponse>> GetProductsDetailsByCode(string code);
     Task<bool> DeleteProductById(int productId);

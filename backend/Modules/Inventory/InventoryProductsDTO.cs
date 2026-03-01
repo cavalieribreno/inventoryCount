@@ -1,10 +1,10 @@
-namespace Csinv.Products.DTOs;
+namespace Csinv.InventoryProducts.DTOs;
 // Data Transfer Object for insert product requests
 public class ProductsInsertRequest
 {
     public string? Code { get; set; }
     public int Quantity { get; set; }
-    public int Year { get; set; }
+    public int SessionId { get; set; }
 }
 // Data Transfer Object for product details response
 public class ProductsDetailsResponse

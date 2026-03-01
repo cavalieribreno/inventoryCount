@@ -1,0 +1,55 @@
+using Csinv.InventoryProducts.DTOs;
+using Csinv.InventoryProducts.Interfaces;
+using Csinv.InventorySessions.Interfaces;
+
+namespace Csinv.InventoryProducts.Service;
+// Service class for product operations
+public class InventoryProductsService : IInventoryProductsService
+{
+    // Dependency injection of the products repository
+    private readonly IInventoryProductsRepository _productsrepository;
+    private readonly ISessionRepository _sessionrepository;
+    public InventoryProductsService(IInventoryProductsRepository productsrepository, ISessionRepository sessionrepository)
+    {
+        _productsrepository = productsrepository;
+        _sessionrepository = sessionrepository;
+    }
+    // Method to validate product details
+    public bool ValidateProduct(string productCode, int productQuantity, int sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(productCode) || productQuantity <= 0)
+        {
+            return false;
+        }
+        return true;
+    }
+    // Method to insert a product using the repository
+    public async Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId)
+    {
+        var activeSession = await _sessionrepository.GetActiveSession();
+        if(activeSession == null || activeSession.Id != sessionId)
+        {
+            throw new InvalidOperationException("No active inventory session found for the provided session ID.");
+        }
+        var result = await _productsrepository.InventoryInsertProduct(productCode, productQuantity, sessionId);
+        return result;
+    }
+    // Method to get products by filter using the repository
+    public async Task<List<ProductsFilterResponse>> GetProductsByFilter(ProductsFilterRequest filter)
+    {
+        var products = await _productsrepository.GetProductsByFilter(filter);
+        return products;
+    }
+    // Method to get product details by code
+    public async Task<List<ProductsDetailsResponse>> GetProductsDetailsByCode(string code)
+    {
+        var products = await _productsrepository.GetProductsDetailsByCode(code);
+        return products;
+    }
+    // Method do delete product by id
+    public async Task<bool> DeleteProductById(int productId)
+    {
+        bool productDelete = await _productsrepository.DeleteProductById(productId);
+        return productDelete;
+    }
+}
