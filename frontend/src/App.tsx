@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import InsertProducts from './modules/Products/InsertProducts';
 import ListProducts from './modules/Products/ListProducts';
+import Sessions from './modules/Sessions/Sessions';
 import './App.css';
 
 function App() {
@@ -19,6 +20,7 @@ function AppLayout() {
         <Routes>
           <Route path="/" element={<ListProducts/>}/>
           <Route path="/insert" element={<InsertProducts/>}/>
+          <Route path="/sessions" element={<Sessions/>}/>
         </Routes>
       </main>
     </div>
@@ -42,11 +44,17 @@ function Header() {
           >
             Produtos
           </Link>
-          <Link 
+          <Link
             to="/insert"
             className={`nav-link ${location.pathname === '/insert' ? 'active' : ''}`}
           >
             Novo Produto
+          </Link>
+          <Link
+            to="/sessions"
+            className={`nav-link ${location.pathname === '/sessions' ? 'active' : ''}`}
+          >
+            Inventários
           </Link>
         </nav>
       </div>

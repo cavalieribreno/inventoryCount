@@ -15,7 +15,7 @@ public class InventoryProductsRepository : IInventoryProductsRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdInsertProduct = @"INSERT INTO cs_inventory (pro_code, inv_quantity, ses_id) VALUES (@productCode, @productQuantity, @sessionId)";
+            string cmdInsertProduct = @"INSERT INTO cs_inventory_items (pro_code, inv_quantity, ses_id) VALUES (@productCode, @productQuantity, @sessionId)";
             using MySqlCommand command = new MySqlCommand(cmdInsertProduct, connection);
             command.Parameters.AddWithValue("@productCode", productCode);
             command.Parameters.AddWithValue("@productQuantity", productQuantity);
@@ -98,7 +98,7 @@ public class InventoryProductsRepository : IInventoryProductsRepository
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
             string cmdSelectProducts = @"SELECT i.inv_id, i.pro_code, i.inv_quantity, s.ses_year, i.inv_date_added 
-            FROM cs_inventory i
+            FROM cs_inventory_items i
             INNER JOIN cs_inventory_sessions s
             ON i.ses_id = s.ses_id 
             WHERE i.pro_code = @code";
@@ -129,11 +129,11 @@ public class InventoryProductsRepository : IInventoryProductsRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdDeleteProductById = @"DELETE FROM cs_inventory WHERE inv_id = @productId";
+            string cmdDeleteProductById = @"DELETE FROM cs_inventory_items WHERE inv_id = @productId";
             using MySqlCommand command = new MySqlCommand(cmdDeleteProductById, connection);
             command.Parameters.AddWithValue("@productId", productId);
-            await command.ExecuteNonQueryAsync();
-            return true;
+            int rowsAffected = await command.ExecuteNonQueryAsync();
+            return rowsAffected > 0; 
         } catch (Exception ex)
         {
             Console.WriteLine($"Error to delete product: {ex.Message}");

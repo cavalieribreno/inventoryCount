@@ -14,7 +14,7 @@ public class SessionRepository : ISessionRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdGetActiveSession = @"SELECT ses_id, ses_year, ses_status, ses_started_at, ses_finished_at 
+            string cmdGetActiveSession = @"SELECT ses_id, ses_year, ses_status, ses_started_at, ses_finished_at, ses_canceled_at
             FROM cs_inventory_sessions 
             WHERE ses_status = 'active' 
             LIMIT 1";
@@ -29,7 +29,8 @@ public class SessionRepository : ISessionRepository
                     Year = reader.GetInt32("ses_year"),
                     Status = reader.GetString("ses_status"),
                     StartDate = reader.GetDateTime("ses_started_at"),
-                    FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at")
+                    FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
+                    CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at")
                 };
             }
             return null;
@@ -70,7 +71,8 @@ public class SessionRepository : ISessionRepository
                     Year = reader.GetInt32("ses_year"),
                     Status = reader.GetString("ses_status"),
                     StartDate = reader.GetDateTime("ses_started_at"),
-                    FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at")
+                    FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
+                    CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at")
                 };
             }
             return null;
@@ -100,6 +102,26 @@ public class SessionRepository : ISessionRepository
             throw;
         }
     }
+    // Method to cancel an active inventory session
+    public async Task<bool> CancelSession(int sessionId)
+    {
+        try
+        {
+            using MySqlConnection connection = DatabaseConnection.Connection();
+            await connection.OpenAsync();
+            string cmdCancelSession = @"UPDATE cs_inventory_sessions 
+            SET ses_status = 'canceled', ses_canceled_at = NOW()
+            WHERE ses_id = @ses_id AND ses_status = 'active'";
+            using MySqlCommand cancelSessionCommand = new MySqlCommand(cmdCancelSession, connection);
+            cancelSessionCommand.Parameters.AddWithValue("@ses_id", sessionId);
+            int rowsAffected = await cancelSessionCommand.ExecuteNonQueryAsync();
+            return rowsAffected > 0;
+        } catch (Exception ex)
+        {
+            Console.WriteLine($"Error canceling session: {ex.Message}");
+            throw;
+        }
+    }
     // Method to get all inventory sessions
     public async Task<List<SessionResponse>> GetAllSessions()
     {
@@ -107,8 +129,8 @@ public class SessionRepository : ISessionRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdGetAllSessions = @"SELECT ses_id, ses_year, ses_status, ses_started_at, ses_finished_at
-            FROM cs_inventory_sessions
+            string cmdGetAllSessions = @"SELECT ses_id, ses_year, ses_status, ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items
+            FROM vw_inventory_sessions
             ORDER BY ses_started_at DESC";
             using MySqlCommand getAllSessionscommand = new MySqlCommand(cmdGetAllSessions, connection);
             using var reader = (MySqlDataReader)await getAllSessionscommand.ExecuteReaderAsync();
@@ -120,7 +142,9 @@ public class SessionRepository : ISessionRepository
                     Year = reader.GetInt32("ses_year"),
                     Status = reader.GetString("ses_status"),
                     StartDate = reader.GetDateTime("ses_started_at"),
-                    FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at")
+                    FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
+                    CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at"),
+                    TotalItems = reader.GetInt32("totalqnt_items")
                 });
             }
             return sessions;

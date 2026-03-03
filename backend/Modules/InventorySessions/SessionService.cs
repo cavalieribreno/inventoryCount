@@ -38,6 +38,11 @@ public class SessionService : ISessionService
     {
         return await _sessionRepository.FinishSession(sessionId);
     }
+    // Method to cancel an inventory session
+    public async Task<bool> CancelSession(int sessionId)
+    {
+        return await _sessionRepository.CancelSession(sessionId);
+    }
     // Method to get all inventory sessions
     public async Task<List<SessionResponse>> GetAllSessions()
     {

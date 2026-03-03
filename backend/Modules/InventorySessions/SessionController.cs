@@ -45,6 +45,17 @@ public class SessionController : ControllerBase
         }
         return Ok(result);
     }
+    // Endpoint to cancel the active inventory session
+    [HttpPatch("{sessionId}/cancel")]
+    public async Task<IActionResult> CancelSession(int sessionId)
+    {
+        var result = await _sessionService.CancelSession(sessionId);
+        if(!result)
+        {
+            return BadRequest("Failed to cancel session. No active session found.");
+        }
+        return Ok(result);
+    }
     // Endpoint to get all inventory sessions
     [HttpGet("getall")]
     public async Task<IActionResult> GetAllSessions()

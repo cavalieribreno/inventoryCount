@@ -11,7 +11,7 @@ function InsertProducts() {
   const handleSubmit = async (event: React.SyntheticEvent) => {
     event.preventDefault();
     try{
-      const response = await fetch("http://localhost:5144/api/products/insert", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/insert`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

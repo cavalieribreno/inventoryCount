@@ -26,10 +26,13 @@ function ListProducts(){
             if(filterYear) parameters.append("year", filterYear);
 
             // fetch products from backend API with query string parameters
-            const response = await fetch("http://localhost:5144/api/products/filter?" + parameters);
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/filter?` + parameters);
             if(response.ok){
                 const productsData = await response.json();
-                setProducts(productsData);
+                if(productsData.length > 0){
+                    setProducts(productsData);
+                    setPage(pageNumber);
+                }
             } else {
                 throw new Error("Erro ao buscar produtos");
             }
@@ -44,24 +47,19 @@ function ListProducts(){
 
     // Handler for filter, and handlers for pagination buttons (next and previous)
     const handleFilter = () => {
-        setPage(1);
         fetchProducts(1);
     }
     const handleNextPage = () => {
-        const nextPage = page + 1;
-        setPage(nextPage);
-        fetchProducts(nextPage);
+        fetchProducts(page + 1);
     }
     const handlePrevPage = () => {
-        const prevPage = page - 1;
-        setPage(prevPage);
-        fetchProducts(prevPage);
+        fetchProducts(page - 1);
     }
     // handle for show details of products
     const handleDetails = async (code: string) => {
         setErrorMsg("");
         try{
-            const response = await fetch(`http://localhost:5144/api/products/details/${code}`);
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/details/${code}`);
             if(response.ok){
                 const detailsData = await response.json();
                 // se nao tiver produto, nao abre o popup
@@ -82,7 +80,7 @@ function ListProducts(){
     const handleDelete = async (id: number, code: string) => {
         setErrorMsg("");
         try{
-            const response = await fetch(`http://localhost:5144/api/products/delete/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/delete/${id}`, {
                 method: "DELETE"
             });
             if(response.ok){ // comandos para atualizar a lista
