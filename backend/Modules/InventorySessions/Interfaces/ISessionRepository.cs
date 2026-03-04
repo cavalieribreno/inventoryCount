@@ -5,9 +5,9 @@ namespace Csinv.InventorySessions.Interfaces;
 public interface ISessionRepository
 {
     Task<SessionResponse?> GetActiveSession();
+    Task<bool> SessionExistsByYearMonth(int year, int? month);
     Task<SessionResponse> CreateSession(SessionStartRequest request);
     Task<bool> FinishSession(int sessionId);
-
     Task<bool> CancelSession(int sessionId);
     Task<List<SessionResponse>> GetAllSessions();
 }

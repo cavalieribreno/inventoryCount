@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import type { Session } from './Models/SessionModel';
 
+const monthNames = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
 function Sessions() {
     // state variables for sessions list, active session, new session year and errors
     const [sessions, setSessions] = useState<Session[]>([]);
     const [activeSession, setActiveSession] = useState<Session | null>(null);
     const [year, setYear] = useState("");
+    const [month, setMonth] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
 
     // function to fetch the current active session from backend
@@ -51,7 +54,7 @@ function Sessions() {
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/create`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ year: Number(year) })
+                body: JSON.stringify({ year: Number(year), month: month ? Number(month) : null })
             });
             if (response.ok) {
                 fetchActiveSession();
@@ -83,6 +86,7 @@ function Sessions() {
             setErrorMsg(err instanceof Error ? err.message : String(err ?? "Erro ao finalizar sessão"));
         }
     }
+    // handler to cancel the active session
     const handleCancel = async (sessionId: number) => {
         setErrorMsg("");
         try{
@@ -109,7 +113,7 @@ function Sessions() {
                 <div>
                     <strong>Inventário ativo: </strong>
                     {activeSession
-                        ? <span>#{activeSession.id} — {activeSession.year} (iniciado em {new Date(activeSession.startDate).toLocaleString()})</span>
+                        ? <span>#{activeSession.id} — {activeSession.month ? monthNames[activeSession.month] + "/" : "Anual — "}{activeSession.year} (iniciado em {new Date(activeSession.startDate).toLocaleString()})</span>
                         : <span>Nenhum inventário ativo</span>
                     }
                     {activeSession && (
@@ -128,6 +132,21 @@ function Sessions() {
             {!activeSession && (
                 <div className="filters">
                     <form onSubmit={handleCreate}>
+                        <select value={month} onChange={(e) => setMonth(e.target.value)}>
+                            <option value="">Mês</option>
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
                         <input
                             type="number"
                             placeholder="Ano"
@@ -146,6 +165,7 @@ function Sessions() {
                     <tr>
                         <th>ID</th>
                         <th>Ano</th>
+                        <th>Mês</th>
                         <th>Status</th>
                         <th>Início</th>
                         <th>Fim</th>
@@ -158,6 +178,7 @@ function Sessions() {
                         <tr key={session.id}>
                             <td>{session.id}</td>
                             <td>{session.year}</td>
+                            <td>{session.month ? monthNames[session.month] : "Anual"}</td>
                             <td>{session.status}</td>
                             <td>{new Date(session.startDate).toLocaleString()}</td>
                             <td>{session.finishDate ? new Date(session.finishDate).toLocaleString() : "—"}</td>

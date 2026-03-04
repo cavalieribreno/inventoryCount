@@ -3,12 +3,14 @@ namespace Csinv.InventorySessions.DTOs;
 public class SessionStartRequest
 {
     public int Year { get; set; }
+    public int? Month { get; set; }
 }
 // response for inventory session details
 public class SessionResponse
 {
     public int Id { get; set; }
     public int Year { get; set; }
+    public int? Month { get; set; }
     public String? Status { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? FinishDate { get; set; }

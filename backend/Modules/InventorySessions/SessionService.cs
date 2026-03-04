@@ -19,13 +19,21 @@ public class SessionService : ISessionService
     // Method to start a new inventory session
     public async Task<SessionResponse> CreateSession(SessionStartRequest request)
     {
+        // Validate input parameters
         if(request.Year < 2000 || request.Year > DateTime.Now.Year + 1)
         {
             throw new ArgumentException("Invalid year for inventory session.");
         }
-
-        // verificar se uma sessão está ativa pelo ano antes de iniciar uma nova sessão, pq podem ter ativas de outros anos ao mesmo tempo
-        
+        if(request.Month.HasValue && (request.Month < 1 || request.Month > 12))
+        {
+            throw new ArgumentException("Invalid month for inventory session.");
+        }
+        // Check for existing sessions in the same year and month
+        if(await _sessionRepository.SessionExistsByYearMonth(request.Year, request.Month))
+        {
+            throw new InvalidOperationException("A session for the specified year and month already exists.");
+        }
+        // Check for an active session before creating a new one
         var activeSession = await _sessionRepository.GetActiveSession();
         if(activeSession != null)
         {

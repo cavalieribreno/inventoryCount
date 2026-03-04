@@ -42,7 +42,7 @@ public class InventoryProductsRepository : IInventoryProductsRepository
             // Prepare the command with dynamic query
             using MySqlCommand command = new MySqlCommand();
             // Base SQL query
-            string cmdSelectProducts = @"SELECT ses_year, pro_code, pro_name, total_quantity FROM vw_inventory_items WHERE 1=1";
+            string cmdSelectProducts = @"SELECT ses_year, ses_month, pro_code, pro_name, total_quantity FROM vw_inventory_items WHERE 1=1";
         
             // Dinamic query construction based on filter
             if (!string.IsNullOrEmpty(filter.ProductName))
@@ -59,6 +59,11 @@ public class InventoryProductsRepository : IInventoryProductsRepository
             {
                 cmdSelectProducts += " AND ses_year = @year";
                 command.Parameters.AddWithValue("@year", filter.Year.Value);
+            }
+            if(filter.Month.HasValue)
+            {
+                cmdSelectProducts += " AND ses_month = @month";
+                command.Parameters.AddWithValue("@month", filter.Month.Value);
             }
             // Finalize command setup
             command.CommandText = cmdSelectProducts;
@@ -80,6 +85,7 @@ public class InventoryProductsRepository : IInventoryProductsRepository
                     ProductName = reader["pro_name"].ToString(),
                     Code = reader["pro_code"].ToString(),
                     Year = Convert.ToInt32(reader["ses_year"]),
+                    Month = reader["ses_month"] == DBNull.Value ? null : Convert.ToInt32(reader["ses_month"]),
                     TotalQuantity = Convert.ToInt32(reader["total_quantity"])
                 });
             }
@@ -97,10 +103,10 @@ public class InventoryProductsRepository : IInventoryProductsRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdSelectProducts = @"SELECT i.inv_id, i.pro_code, i.inv_quantity, s.ses_year, i.inv_date_added 
+            string cmdSelectProducts = @"SELECT i.inv_id, i.pro_code, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added
             FROM cs_inventory_items i
             INNER JOIN cs_inventory_sessions s
-            ON i.ses_id = s.ses_id 
+            ON i.ses_id = s.ses_id
             WHERE i.pro_code = @code";
             using MySqlCommand command = new MySqlCommand(cmdSelectProducts, connection);
             command.Parameters.AddWithValue("@code", code);
@@ -113,6 +119,7 @@ public class InventoryProductsRepository : IInventoryProductsRepository
                     Code = reader["pro_code"].ToString(),
                     Quantity = Convert.ToInt32(reader["inv_quantity"]),
                     Year = Convert.ToInt32(reader["ses_year"]),
+                    Month = reader["ses_month"] == DBNull.Value ? null : Convert.ToInt32(reader["ses_month"]),
                     DateHour = Convert.ToDateTime(reader["inv_date_added"])
                 });
             }

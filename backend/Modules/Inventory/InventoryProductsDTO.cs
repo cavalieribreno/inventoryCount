@@ -13,6 +13,7 @@ public class ProductsDetailsResponse
     public string? Code { get; set; }
     public int Quantity { get; set; }
     public int Year { get; set; }
+    public int? Month { get; set; }
     public DateTime DateHour { get; set;}
 }
 // Data Transfer Object to products filter requests and pagination
@@ -21,6 +22,7 @@ public class ProductsFilterRequest
     public string? ProductName { get; set; }
     public string? Code { get; set; }
     public int? Year { get; set; }
+    public int? Month { get; set; }
 
     // Pagination properties
     public int Page { get; set; } = 1;
@@ -32,5 +34,6 @@ public class ProductsFilterResponse
     public string? ProductName { get; set; }
     public string? Code { get; set; }
     public int Year { get; set; }
+    public int? Month { get; set; }
     public int TotalQuantity { get; set; }
 }

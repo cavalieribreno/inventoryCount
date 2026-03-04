@@ -379,7 +379,7 @@ tbody tr:last-child td {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-2xl);
-  max-width: 700px;
+  max-width: 750px;
   width: 90%;
   box-shadow: var(--shadow-xl);
   animation: slideUp var(--transition-slow);
