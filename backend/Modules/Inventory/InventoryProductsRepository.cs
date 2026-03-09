@@ -129,6 +129,43 @@ public class InventoryProductsRepository : IInventoryProductsRepository
         }
         return products;
     }
+    // Method to get all products by sessionId
+    public async Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId)
+    {
+        List<ProductsDetailsResponse> products = new List<ProductsDetailsResponse>();
+        try
+        {
+            using MySqlConnection connection = DatabaseConnection.Connection();
+            await connection.OpenAsync();
+            string cmdSessionProducts = @"SELECT i.inv_id, i.pro_code, p.pro_name, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added
+            FROM cs_inventory_items i
+            INNER JOIN cs_inventory_sessions s ON i.ses_id = s.ses_id
+            INNER JOIN cs_products p ON i.pro_code = p.pro_code
+            WHERE i.ses_id = @sessionId
+            ORDER BY i.inv_date_added DESC";
+            using MySqlCommand command = new MySqlCommand(cmdSessionProducts, connection);
+            command.Parameters.AddWithValue("@sessionId", sessionId);
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                products.Add(new ProductsDetailsResponse
+                {
+                    Id = Convert.ToInt32(reader["inv_id"]),
+                    Code = reader["pro_code"].ToString(),
+                    ProductName = reader["pro_name"].ToString(),
+                    Quantity = Convert.ToInt32(reader["inv_quantity"]),
+                    Year = Convert.ToInt32(reader["ses_year"]),
+                    Month = reader["ses_month"] == DBNull.Value ? null : Convert.ToInt32(reader["ses_month"]),
+                    DateHour = Convert.ToDateTime(reader["inv_date_added"])
+                });
+            }
+            return products;
+        } catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving session products: {ex.Message}");
+            return products;
+        }
+    }
     // Method to delete a product by product id
     public async Task<bool> DeleteProductById(int productId)
     {

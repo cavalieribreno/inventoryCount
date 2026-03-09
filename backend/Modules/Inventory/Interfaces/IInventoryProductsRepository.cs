@@ -7,5 +7,6 @@ public interface IInventoryProductsRepository
     Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId);
     Task<List<ProductsFilterResponse>> GetProductsByFilter(ProductsFilterRequest filter);
     Task<List<ProductsDetailsResponse>> GetProductsDetailsByCode(string code);
+    Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId);
     Task<bool> DeleteProductById(int productId);
 }

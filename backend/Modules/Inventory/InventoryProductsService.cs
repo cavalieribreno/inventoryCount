@@ -46,6 +46,16 @@ public class InventoryProductsService : IInventoryProductsService
         var products = await _productsrepository.GetProductsDetailsByCode(code);
         return products;
     }
+    // Method to get products of a session
+    public async Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId)
+    {
+        var products = await _productsrepository.GetSessionProducts(sessionId);
+        if(products == null || products.Count == 0)
+        {
+            throw new InvalidOperationException("No products found for the provided session ID.");
+        }
+        return products;
+    }
     // Method do delete product by id
     public async Task<bool> DeleteProductById(int productId)
     {

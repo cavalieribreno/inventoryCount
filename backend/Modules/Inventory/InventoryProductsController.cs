@@ -55,6 +55,20 @@ public class InventoryProductsController : ControllerBase
         }
         return Ok(products);
     }
+    // Endpoint to get products of a session
+    [HttpGet("session/{sessionId}")]
+    public async Task<IActionResult> GetSessionProducts(int sessionId)
+    {
+        try
+        {
+            var products = await _productsService.GetSessionProducts(sessionId);
+            return Ok(products);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
     // Endpoint to delete product by id
     [HttpDelete("delete/{productId}")]
     public async Task<IActionResult> DeleteProductById(int productId)

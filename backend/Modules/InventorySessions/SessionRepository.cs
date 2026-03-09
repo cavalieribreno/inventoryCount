@@ -14,8 +14,8 @@ public class SessionRepository : ISessionRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdGetActiveSession = @"SELECT ses_id, ses_year, ses_month, ses_status, ses_started_at, ses_finished_at, ses_canceled_at
-            FROM cs_inventory_sessions 
+            string cmdGetActiveSession = @"SELECT ses_id, ses_year, ses_month, ses_status, ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items
+            FROM vw_inventory_sessions 
             WHERE ses_status = 'active' 
             LIMIT 1";
             using MySqlCommand command = new MySqlCommand(cmdGetActiveSession, connection);
@@ -31,7 +31,8 @@ public class SessionRepository : ISessionRepository
                     Status = reader.GetString("ses_status"),
                     StartDate = reader.GetDateTime("ses_started_at"),
                     FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
-                    CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at")
+                    CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at"),
+                    TotalItems = reader.GetInt32("totalqnt_items")
                 };
             }
             return null;
