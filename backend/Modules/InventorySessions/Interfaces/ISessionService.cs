@@ -8,5 +8,5 @@ public interface ISessionService
     Task<SessionResponse> CreateSession(SessionStartRequest request);
     Task<bool> FinishSession(int sessionId);
     Task<bool> CancelSession(int sessionId);
-    Task<List<SessionResponse>> GetAllSessions();
+    Task<List<SessionResponse>> GetAllSessions(SessionFilterRequest filter);
 }

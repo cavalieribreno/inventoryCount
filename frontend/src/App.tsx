@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import InsertProducts from './modules/Products/InsertProducts';
 import ListProducts from './modules/Products/ListProducts';
 import Sessions from './modules/Sessions/Sessions';
+import SessionProducts from './modules/Sessions/SessionProducts';
 import './App.css';
 
 function App() {
@@ -19,8 +19,8 @@ function AppLayout() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<ListProducts/>}/>
-          <Route path="/insert" element={<InsertProducts/>}/>
           <Route path="/sessions" element={<Sessions/>}/>
+          <Route path="/sessions/:sessionId" element={<SessionProducts/>}/>
         </Routes>
       </main>
     </div>
@@ -38,21 +38,15 @@ function Header() {
           <p className="tagline">Cacau Show</p>
         </div>
         <nav className="app-nav">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
           >
             Produtos
           </Link>
           <Link
-            to="/insert"
-            className={`nav-link ${location.pathname === '/insert' ? 'active' : ''}`}
-          >
-            Novo Produto
-          </Link>
-          <Link
             to="/sessions"
-            className={`nav-link ${location.pathname === '/sessions' ? 'active' : ''}`}
+            className={`nav-link ${location.pathname.startsWith('/sessions') ? 'active' : ''}`}
           >
             Inventários
           </Link>

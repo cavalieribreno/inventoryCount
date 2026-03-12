@@ -8,6 +8,7 @@ export interface Product {
 export interface ProductDetails{
     id: number,
     code: string,
+    productName: string,
     year: number,
     month: number | null,
     quantity: number,

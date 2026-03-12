@@ -56,11 +56,11 @@ public class SessionController : ControllerBase
         }
         return Ok(result);
     }
-    // Endpoint to get all inventory sessions
+    // Endpoint to get all inventory sessions with filters and pagination
     [HttpGet("getall")]
-    public async Task<IActionResult> GetAllSessions()
+    public async Task<IActionResult> GetAllSessions([FromQuery] SessionFilterRequest filter)
     {
-        var sessions = await _sessionService.GetAllSessions();
+        var sessions = await _sessionService.GetAllSessions(filter);
         return Ok(sessions);
     }
 }

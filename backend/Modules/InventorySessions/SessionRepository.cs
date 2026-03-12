@@ -155,18 +155,40 @@ public class SessionRepository : ISessionRepository
             throw;
         }
     }
-    // Method to get all inventory sessions
-    public async Task<List<SessionResponse>> GetAllSessions()
+    // Method to get all inventory sessions with filters and pagination
+    public async Task<List<SessionResponse>> GetAllSessions(SessionFilterRequest filter)
     {
         try
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
+            using MySqlCommand command = new MySqlCommand();
             string cmdGetAllSessions = @"SELECT ses_id, ses_year, ses_month, ses_status, ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items
-            FROM vw_inventory_sessions
-            ORDER BY ses_started_at DESC";
-            using MySqlCommand getAllSessionscommand = new MySqlCommand(cmdGetAllSessions, connection);
-            using var reader = (MySqlDataReader)await getAllSessionscommand.ExecuteReaderAsync();
+            FROM vw_inventory_sessions WHERE 1=1";
+            // Dynamic query construction based on filter
+            if(filter.Year.HasValue)
+            {
+                cmdGetAllSessions += " AND ses_year = @year";
+                command.Parameters.AddWithValue("@year", filter.Year.Value);
+            }
+            if(filter.Month.HasValue)
+            {
+                cmdGetAllSessions += " AND ses_month = @month";
+                command.Parameters.AddWithValue("@month", filter.Month.Value);
+            }
+            if(!string.IsNullOrEmpty(filter.Status))
+            {
+                cmdGetAllSessions += " AND ses_status = @status";
+                command.Parameters.AddWithValue("@status", filter.Status);
+            }
+            // Pagination
+            int offset = (filter.Page - 1) * filter.PageSize;
+            cmdGetAllSessions += " ORDER BY ses_started_at DESC LIMIT @pageSize OFFSET @offset";
+            command.Parameters.AddWithValue("@pageSize", filter.PageSize);
+            command.Parameters.AddWithValue("@offset", offset);
+            command.CommandText = cmdGetAllSessions;
+            command.Connection = connection;
+            using var reader = (MySqlDataReader)await command.ExecuteReaderAsync();
             List<SessionResponse> sessions = new List<SessionResponse>();
             while (await reader.ReadAsync())
             {

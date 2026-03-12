@@ -103,10 +103,10 @@ public class InventoryProductsRepository : IInventoryProductsRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdSelectProducts = @"SELECT i.inv_id, i.pro_code, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added
+            string cmdSelectProducts = @"SELECT i.inv_id, i.pro_code, p.pro_name, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added
             FROM cs_inventory_items i
-            INNER JOIN cs_inventory_sessions s
-            ON i.ses_id = s.ses_id
+            INNER JOIN cs_inventory_sessions s ON i.ses_id = s.ses_id
+            INNER JOIN cs_products p ON i.pro_code = p.pro_code
             WHERE i.pro_code = @code";
             using MySqlCommand command = new MySqlCommand(cmdSelectProducts, connection);
             command.Parameters.AddWithValue("@code", code);
@@ -117,6 +117,7 @@ public class InventoryProductsRepository : IInventoryProductsRepository
                 {
                     Id = Convert.ToInt32(reader["inv_id"]),
                     Code = reader["pro_code"].ToString(),
+                    ProductName = reader["pro_name"].ToString(),
                     Quantity = Convert.ToInt32(reader["inv_quantity"]),
                     Year = Convert.ToInt32(reader["ses_year"]),
                     Month = reader["ses_month"] == DBNull.Value ? null : Convert.ToInt32(reader["ses_month"]),

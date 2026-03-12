@@ -20,6 +20,10 @@ public class SessionService : ISessionService
     public async Task<SessionResponse> CreateSession(SessionStartRequest request)
     {
         // Validate input parameters
+        if(request == null)
+        {
+            throw new ArgumentNullException(nameof(request), "Session start request cannot be null.");
+        }
         if(request.Year < 2000 || request.Year > DateTime.Now.Year + 1)
         {
             throw new ArgumentException("Invalid year for inventory session.");
@@ -51,9 +55,14 @@ public class SessionService : ISessionService
     {
         return await _sessionRepository.CancelSession(sessionId);
     }
-    // Method to get all inventory sessions
-    public async Task<List<SessionResponse>> GetAllSessions()
+    // Method to get all inventory sessions with filters and pagination
+    public async Task<List<SessionResponse>> GetAllSessions(SessionFilterRequest filter)
     {
-        return await _sessionRepository.GetAllSessions();
+        var sessions = await _sessionRepository.GetAllSessions(filter);
+        if (sessions == null || sessions.Count == 0)
+        {
+            throw new KeyNotFoundException("No inventory sessions found.");
+        }
+        return sessions;
     }
 }
