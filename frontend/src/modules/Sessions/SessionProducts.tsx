@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { ProductDetails } from '../Products/Models/ProductModel';
 import type { Session } from './Models/SessionModel';
+import { apiFetch } from '../../services/api';
 
 const monthNames = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -19,7 +20,7 @@ function SessionProducts() {
     // function to fetch session info from all sessions
     const fetchSession = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/getall`);
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/getall`);
             if (response.ok) {
                 const sessions: Session[] = await response.json();
                 const found = sessions.find(s => s.id === Number(sessionId));
@@ -33,7 +34,7 @@ function SessionProducts() {
     // function to fetch products of this session
     const fetchProducts = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/session/${sessionId}`);
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/session/${sessionId}`);
             if (response.ok) {
                 const data = await response.json();
                 setProducts(data);
@@ -57,7 +58,7 @@ function SessionProducts() {
         event.preventDefault();
         setErrorMsg("");
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/insert`, {
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/insert`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ code, quantity, sessionId: Number(sessionId) })
@@ -79,7 +80,7 @@ function SessionProducts() {
     const handleDelete = async (productId: number) => {
         setErrorMsg("");
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/delete/${productId}`, {
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/delete/${productId}`, {
                 method: "DELETE"
             });
             if (response.ok) {

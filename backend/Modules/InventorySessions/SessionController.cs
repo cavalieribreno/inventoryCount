@@ -1,10 +1,12 @@
 using Csinv.InventorySessions.DTOs;
 using Csinv.InventorySessions.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Csinv.InventorySessions.Controller;
 [ApiController]
 [Route("api/sessions")]
+[Authorize]
 public class SessionController : ControllerBase
 {
     private readonly ISessionService _sessionService;

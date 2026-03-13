@@ -1,11 +1,13 @@
 using Csinv.InventoryProducts.DTOs;
 using Csinv.InventoryProducts.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Csinv.InventoryProducts.Controller;
 
 [ApiController]
 [Route("api/products")]
+[Authorize]
 // Controller class for product-related endpoints
 public class InventoryProductsController : ControllerBase
 {

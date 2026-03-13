@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Session } from './Models/SessionModel';
+import { apiFetch } from '../../services/api';
 
 const monthNames = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -21,7 +22,7 @@ function Sessions() {
     // function to fetch the current active session from backend
     const fetchActiveSession = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/active`);
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/active`);
             if (response.ok) {
                 const data = await response.json();
                 setActiveSession(data);
@@ -43,7 +44,7 @@ function Sessions() {
             if(filterMonth) parameters.append("month", filterMonth);
             if(filterStatus) parameters.append("status", filterStatus);
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/getall?` + parameters);
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/getall?` + parameters);
             if (response.ok) {
                 const data = await response.json();
                 setSessions(data);
@@ -66,7 +67,7 @@ function Sessions() {
         event.preventDefault();
         setErrorMsg("");
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/create`, {
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/create`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ year: Number(year), month: month ? Number(month) : null })
@@ -87,7 +88,7 @@ function Sessions() {
     const handleFinish = async (sessionId: number) => {
         setErrorMsg("");
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${sessionId}/finish`, {
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${sessionId}/finish`, {
                 method: "PATCH"
             });
             if (response.ok) {
@@ -105,7 +106,7 @@ function Sessions() {
     const handleCancel = async (sessionId: number) => {
         setErrorMsg("");
         try{
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/sessions/${sessionId}/cancel`, {
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${sessionId}/cancel`, {
                 method: "PATCH"
             });
             if (response.ok){

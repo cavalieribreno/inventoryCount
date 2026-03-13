@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Product, ProductDetails } from "./Models/ProductModel";
+import { apiFetch } from '../../services/api';
 
 const monthNames = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -30,7 +31,7 @@ function ListProducts(){
             if(filterMonth) parameters.append("month", filterMonth);
 
             // fetch products from backend API with query string parameters
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/filter?` + parameters);
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/filter?` + parameters);
             if(response.ok){
                 const productsData = await response.json();
                 if(productsData.length > 0){
@@ -63,7 +64,7 @@ function ListProducts(){
     const handleDetails = async (code: string) => {
         setErrorMsg("");
         try{
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/details/${code}`);
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/details/${code}`);
             if(response.ok){
                 const detailsData = await response.json();
                 // se nao tiver produto, nao abre o popup
@@ -84,7 +85,7 @@ function ListProducts(){
     const handleDelete = async (id: number, code: string) => {
         setErrorMsg("");
         try{
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/delete/${id}`, {
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/delete/${id}`, {
                 method: "DELETE"
             });
             if(response.ok){ // comandos para atualizar a lista
