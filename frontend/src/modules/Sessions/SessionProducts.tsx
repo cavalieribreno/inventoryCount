@@ -16,6 +16,10 @@ function SessionProducts() {
     // state variables for insert form
     const [code, setCode] = useState("");
     const [quantity, setQuantity] = useState(0);
+    // state variables for filters and pagination
+    const [filterName, setFilterName] = useState("");
+    const [filterCode, setFilterCode] = useState("");
+    const [page, setPage] = useState(1);
 
     // function to fetch session info from all sessions
     const fetchSession = async () => {
@@ -31,13 +35,20 @@ function SessionProducts() {
         }
     }
 
-    // function to fetch products of this session
-    const fetchProducts = async () => {
+    // function to fetch products of this session with filters and pagination
+    const fetchProducts = async (pageNumber: number) => {
         try {
-            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/session/${sessionId}`);
+            const parameters = new URLSearchParams();
+            parameters.append("page", pageNumber.toString());
+            parameters.append("pageSize", "10");
+            if (filterName) parameters.append("productName", filterName);
+            if (filterCode) parameters.append("code", filterCode);
+
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/products/session/${sessionId}?` + parameters);
             if (response.ok) {
                 const data = await response.json();
                 setProducts(data);
+                setPage(pageNumber);
             } else if (response.status === 404) {
                 setProducts([]);
             } else {
@@ -50,7 +61,7 @@ function SessionProducts() {
 
     useEffect(() => {
         fetchSession();
-        fetchProducts();
+        fetchProducts(page);
     }, [sessionId]);
 
     // handler to insert a product into this session
@@ -66,7 +77,7 @@ function SessionProducts() {
             if (response.ok) {
                 setCode("");
                 setQuantity(0);
-                fetchProducts();
+                fetchProducts(page);
             } else {
                 const msg = await response.text();
                 setErrorMsg(msg || "Erro ao inserir produto");
@@ -84,7 +95,7 @@ function SessionProducts() {
                 method: "DELETE"
             });
             if (response.ok) {
-                fetchProducts();
+                fetchProducts(page);
             } else {
                 throw new Error("Erro ao excluir produto");
             }
@@ -100,7 +111,7 @@ function SessionProducts() {
 
     return (
         <div>
-            <Link to="/sessions">&larr; Voltar</Link>
+            <Link to="/">&larr; Voltar</Link>
 
             <h1>Inventário: {sessionTitle}</h1>
 
@@ -122,6 +133,12 @@ function SessionProducts() {
 
             {errorMsg && <p className="error-message">{errorMsg}</p>}
 
+            <div className="filters">
+                <input type="text" placeholder="Nome" value={filterName} onChange={(e) => setFilterName(e.target.value)} />
+                <input type="text" placeholder="Código" value={filterCode} onChange={(e) => setFilterCode(e.target.value)} />
+                <button onClick={() => fetchProducts(1)}>Filtrar</button>
+            </div>
+
             <table>
                 <thead>
                     <tr>
@@ -129,6 +146,7 @@ function SessionProducts() {
                         <th>Código</th>
                         <th>Quantidade</th>
                         <th>Data</th>
+                        <th>Inserido por</th>
                         {session?.status === "active" && <th>Ações</th>}
                     </tr>
                 </thead>
@@ -139,6 +157,7 @@ function SessionProducts() {
                             <td>{product.code}</td>
                             <td>{product.quantity}</td>
                             <td>{new Date(product.dateHour).toLocaleString()}</td>
+                            <td>{product.userName}</td>
                             {session?.status === "active" && (
                                 <td><button onClick={() => handleDelete(product.id)}>Excluir</button></td>
                             )}
@@ -146,6 +165,12 @@ function SessionProducts() {
                     ))}
                 </tbody>
             </table>
+
+            <div className="pagination">
+                <button onClick={() => fetchProducts(page - 1)} disabled={page === 1}>Anterior</button>
+                <span>Página {page}</span>
+                <button onClick={() => fetchProducts(page + 1)} disabled={products.length < 10}>Próxima</button>
+            </div>
 
             {products.length === 0 && <p>Nenhum produto nesta sessão.</p>}
         </div>

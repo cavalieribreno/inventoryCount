@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Csinv.InventoryProducts.DTOs;
 using Csinv.InventoryProducts.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -25,7 +26,8 @@ public class InventoryProductsController : ControllerBase
         {
             return BadRequest("Invalid product code, quantity or year.");
         }
-        var result = await _productsService.InventoryInsertProduct(productRequest.Code!, productRequest.Quantity, productRequest.SessionId);
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+        var result = await _productsService.InventoryInsertProduct(productRequest.Code!, productRequest.Quantity, productRequest.SessionId, userId);
         if (result)
         {
             return Ok("Product inserted successfully.");
@@ -59,11 +61,11 @@ public class InventoryProductsController : ControllerBase
     }
     // Endpoint to get products of a session
     [HttpGet("session/{sessionId}")]
-    public async Task<IActionResult> GetSessionProducts(int sessionId)
+    public async Task<IActionResult> GetSessionProducts(int sessionId, [FromQuery] SessionProductsFilterRequest filter)
     {
         try
         {
-            var products = await _productsService.GetSessionProducts(sessionId);
+            var products = await _productsService.GetSessionProducts(sessionId, filter);
             return Ok(products);
         }
         catch (InvalidOperationException ex)

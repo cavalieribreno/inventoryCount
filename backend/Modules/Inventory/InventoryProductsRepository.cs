@@ -9,17 +9,18 @@ namespace Csinv.InventoryProducts.Repository;
 public class InventoryProductsRepository : IInventoryProductsRepository
 {
     // Method to insert a product into the database inventory table
-    public async Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId)
+    public async Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId, int userId)
     {
         try
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdInsertProduct = @"INSERT INTO cs_inventory_items (pro_code, inv_quantity, ses_id) VALUES (@productCode, @productQuantity, @sessionId)";
+            string cmdInsertProduct = @"INSERT INTO cs_inventory_items (pro_code, inv_quantity, ses_id, usr_id) VALUES (@productCode, @productQuantity, @sessionId, @userId)";
             using MySqlCommand command = new MySqlCommand(cmdInsertProduct, connection);
             command.Parameters.AddWithValue("@productCode", productCode);
             command.Parameters.AddWithValue("@productQuantity", productQuantity);
             command.Parameters.AddWithValue("@sessionId", sessionId);
+            command.Parameters.AddWithValue("@userId", userId);
             await command.ExecuteNonQueryAsync();
 
             return true;
@@ -42,7 +43,7 @@ public class InventoryProductsRepository : IInventoryProductsRepository
             // Prepare the command with dynamic query
             using MySqlCommand command = new MySqlCommand();
             // Base SQL query
-            string cmdSelectProducts = @"SELECT ses_year, ses_month, pro_code, pro_name, total_quantity FROM vw_inventory_items WHERE 1=1";
+            string cmdSelectProducts = @"SELECT ses_year, ses_month, pro_code, pro_name, total_quantity, usr_id, usr_name FROM vw_inventory_items WHERE 1=1";
         
             // Dinamic query construction based on filter
             if (!string.IsNullOrEmpty(filter.ProductName))
@@ -86,7 +87,9 @@ public class InventoryProductsRepository : IInventoryProductsRepository
                     Code = reader["pro_code"].ToString(),
                     Year = Convert.ToInt32(reader["ses_year"]),
                     Month = reader["ses_month"] == DBNull.Value ? null : Convert.ToInt32(reader["ses_month"]),
-                    TotalQuantity = Convert.ToInt32(reader["total_quantity"])
+                    TotalQuantity = Convert.ToInt32(reader["total_quantity"]),
+                    UserId = Convert.ToInt32(reader["usr_id"]),
+                    UserName = reader["usr_name"].ToString()
                 });
             }
         } catch (Exception ex)
@@ -130,22 +133,40 @@ public class InventoryProductsRepository : IInventoryProductsRepository
         }
         return products;
     }
-    // Method to get all products by sessionId
-    public async Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId)
+    // Method to get all products by sessionId with filters and pagination
+    public async Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId, SessionProductsFilterRequest filter)
     {
         List<ProductsDetailsResponse> products = new List<ProductsDetailsResponse>();
         try
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdSessionProducts = @"SELECT i.inv_id, i.pro_code, p.pro_name, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added
+            using MySqlCommand command = new MySqlCommand();
+            string cmdSessionProducts = @"SELECT i.inv_id, i.pro_code, p.pro_name, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added, u.usr_name
             FROM cs_inventory_items i
             INNER JOIN cs_inventory_sessions s ON i.ses_id = s.ses_id
             INNER JOIN cs_products p ON i.pro_code = p.pro_code
-            WHERE i.ses_id = @sessionId
-            ORDER BY i.inv_date_added DESC";
-            using MySqlCommand command = new MySqlCommand(cmdSessionProducts, connection);
+            INNER JOIN cs_users u ON i.usr_id = u.usr_id
+            WHERE i.ses_id = @sessionId";
             command.Parameters.AddWithValue("@sessionId", sessionId);
+            
+            // Dinamic query construction based on filter
+            if (!string.IsNullOrEmpty(filter.ProductName))
+            {
+                cmdSessionProducts += " AND p.pro_name LIKE @productName";
+                command.Parameters.AddWithValue("@productName", $"%{filter.ProductName}%");
+            }
+            if (!string.IsNullOrEmpty(filter.Code))
+            {
+                cmdSessionProducts += " AND i.pro_code = @code";
+                command.Parameters.AddWithValue("@code", filter.Code);
+            }
+            int offset = (filter.Page - 1) * filter.PageSize;
+            cmdSessionProducts += " ORDER BY i.inv_date_added DESC LIMIT @pageSize OFFSET @offset";
+            command.Parameters.AddWithValue("@pageSize", filter.PageSize);
+            command.Parameters.AddWithValue("@offset", offset);
+            command.CommandText = cmdSessionProducts;
+            command.Connection = connection;
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
@@ -157,7 +178,8 @@ public class InventoryProductsRepository : IInventoryProductsRepository
                     Quantity = Convert.ToInt32(reader["inv_quantity"]),
                     Year = Convert.ToInt32(reader["ses_year"]),
                     Month = reader["ses_month"] == DBNull.Value ? null : Convert.ToInt32(reader["ses_month"]),
-                    DateHour = Convert.ToDateTime(reader["inv_date_added"])
+                    DateHour = Convert.ToDateTime(reader["inv_date_added"]),
+                    UserName = reader["usr_name"].ToString()
                 });
             }
             return products;

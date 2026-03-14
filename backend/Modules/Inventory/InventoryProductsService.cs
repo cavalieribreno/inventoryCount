@@ -24,14 +24,14 @@ public class InventoryProductsService : IInventoryProductsService
         return true;
     }
     // Method to insert a product using the repository
-    public async Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId)
+    public async Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId, int userId)
     {
         var activeSession = await _sessionrepository.GetActiveSession();
         if(activeSession == null || activeSession.Id != sessionId)
         {
             throw new InvalidOperationException("No active inventory session found for the provided session ID.");
         }
-        var result = await _productsrepository.InventoryInsertProduct(productCode, productQuantity, sessionId);
+        var result = await _productsrepository.InventoryInsertProduct(productCode, productQuantity, sessionId, userId);
         return result;
     }
     // Method to get products by filter using the repository
@@ -47,9 +47,9 @@ public class InventoryProductsService : IInventoryProductsService
         return products;
     }
     // Method to get products of a session
-    public async Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId)
+    public async Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId, SessionProductsFilterRequest filter)
     {
-        var products = await _productsrepository.GetSessionProducts(sessionId);
+        var products = await _productsrepository.GetSessionProducts(sessionId, filter);
         if(products == null || products.Count == 0)
         {
             throw new InvalidOperationException("No products found for the provided session ID.");

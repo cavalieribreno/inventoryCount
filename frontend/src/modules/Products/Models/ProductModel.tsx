@@ -12,5 +12,7 @@ export interface ProductDetails{
     year: number,
     month: number | null,
     quantity: number,
-    dateHour: string
+    dateHour: string,
+    // user information
+    userName: string
 }

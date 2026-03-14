@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Csinv.InventorySessions.DTOs;
 using Csinv.InventorySessions.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -29,7 +30,8 @@ public class SessionController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> CreateSession([FromBody]SessionStartRequest request)
     {
-        var result = await _sessionService.CreateSession(request);
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+        var result = await _sessionService.CreateSession(request, userId);
         if(result == null)
         {
             return BadRequest("Failed to create session. Please check the input data.");
@@ -40,7 +42,8 @@ public class SessionController : ControllerBase
     [HttpPatch("{sessionId}/finish")]
     public async Task<IActionResult> FinishSession(int sessionId)
     {
-        var result = await _sessionService.FinishSession(sessionId);
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+        var result = await _sessionService.FinishSession(sessionId, userId);
         if(!result)
         {
             return BadRequest("Failed to finish session. No active session found.");
@@ -51,7 +54,8 @@ public class SessionController : ControllerBase
     [HttpPatch("{sessionId}/cancel")]
     public async Task<IActionResult> CancelSession(int sessionId)
     {
-        var result = await _sessionService.CancelSession(sessionId);
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+        var result = await _sessionService.CancelSession(sessionId, userId);
         if(!result)
         {
             return BadRequest("Failed to cancel session. No active session found.");

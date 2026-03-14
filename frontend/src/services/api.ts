@@ -12,5 +12,13 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
         (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
     }
 
-    return fetch(url, { ...options, headers });
+    const response = await fetch(url, { ...options, headers });
+
+    // if token expired or invalid, logout and redirect to login
+    if (response.status === 401) {
+        localStorage.removeItem("user");
+        window.location.href = "/";
+    }
+
+    return response;
 }

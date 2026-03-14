@@ -17,7 +17,7 @@ public class SessionService : ISessionService
         return await _sessionRepository.GetActiveSession();
     }
     // Method to start a new inventory session
-    public async Task<SessionResponse> CreateSession(SessionStartRequest request)
+    public async Task<SessionResponse> CreateSession(SessionStartRequest request, int userId)
     {
         // Validate input parameters
         if(request == null)
@@ -43,17 +43,17 @@ public class SessionService : ISessionService
         {
             throw new InvalidOperationException("An active inventory session already exists.");
         }
-        return await _sessionRepository.CreateSession(request);
+        return await _sessionRepository.CreateSession(request, userId);
     }
     // Method to finish an inventory session
-    public async Task<bool> FinishSession(int sessionId)
+    public async Task<bool> FinishSession(int sessionId, int userId)
     {
-        return await _sessionRepository.FinishSession(sessionId);
+        return await _sessionRepository.FinishSession(sessionId, userId);
     }
     // Method to cancel an inventory session
-    public async Task<bool> CancelSession(int sessionId)
+    public async Task<bool> CancelSession(int sessionId, int userId)
     {
-        return await _sessionRepository.CancelSession(sessionId);
+        return await _sessionRepository.CancelSession(sessionId, userId);
     }
     // Method to get all inventory sessions with filters and pagination
     public async Task<List<SessionResponse>> GetAllSessions(SessionFilterRequest filter)

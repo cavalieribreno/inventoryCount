@@ -70,16 +70,17 @@ public class SessionRepository : ISessionRepository
         }
     }
     // Method to start a new inventory session
-    public async Task<SessionResponse> CreateSession(SessionStartRequest request)
+    public async Task<SessionResponse> CreateSession(SessionStartRequest request, int userId)
     {
         try
         {
             // create a new session
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdStartSession = @"INSERT INTO cs_inventory_sessions (ses_year, ses_month) VALUES (@ses_year, @ses_month)";
+            string cmdStartSession = @"INSERT INTO cs_inventory_sessions (ses_year, usr_created_by, ses_month) VALUES (@ses_year, @usr_created_by, @ses_month)";
             using MySqlCommand startSessioncommand = new MySqlCommand(cmdStartSession, connection);
             startSessioncommand.Parameters.AddWithValue("@ses_year", request.Year);
+            startSessioncommand.Parameters.AddWithValue("@usr_created_by", userId);
             
             // if month is null, set parameter to DBNull.Value to insert NULL in the database
             startSessioncommand.Parameters.AddWithValue("@ses_month", request.Month.HasValue ? request.Month.Value : DBNull.Value);
@@ -89,7 +90,7 @@ public class SessionRepository : ISessionRepository
             int newSessionId = (int)startSessioncommand.LastInsertedId;
             
             // get to return the created session details
-            string cmdGetSession = @"SELECT ses_id, ses_year, ses_month, ses_status, ses_started_at, ses_finished_at, ses_canceled_at
+            string cmdGetSession = @"SELECT ses_id, ses_year, ses_month, ses_status, ses_started_at, ses_finished_at, ses_canceled_at, usr_created_by
             FROM cs_inventory_sessions 
             WHERE ses_id = @ses_id";
             using MySqlCommand getSessionCommand = new MySqlCommand(cmdGetSession, connection);
@@ -103,6 +104,7 @@ public class SessionRepository : ISessionRepository
                     Year = reader.GetInt32("ses_year"),
                     Month = reader.IsDBNull(reader.GetOrdinal("ses_month")) ? null : reader.GetInt32("ses_month"),
                     Status = reader.GetString("ses_status"),
+                    CreatedBy = reader.GetInt32("usr_created_by"),
                     StartDate = reader.GetDateTime("ses_started_at"),
                     FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
                     CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at")
@@ -116,19 +118,20 @@ public class SessionRepository : ISessionRepository
         }
     }
     // Method to finish an active inventory session
-    public async Task<bool> FinishSession(int sessionId)
+    public async Task<bool> FinishSession(int sessionId, int userId)
     {
         try
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdFinishSession = @"UPDATE cs_inventory_sessions 
-            SET ses_status = 'finished', ses_finished_at = NOW()
+            string cmdFinishSession = @"UPDATE cs_inventory_sessions
+            SET ses_status = 'finished', ses_finished_at = NOW(), usr_finished_by = @userId
             WHERE ses_id = @ses_id AND ses_status = 'active'";
             using MySqlCommand finishSessionCommand = new MySqlCommand(cmdFinishSession, connection);
             finishSessionCommand.Parameters.AddWithValue("@ses_id", sessionId);
+            finishSessionCommand.Parameters.AddWithValue("@userId", userId);
             int rowsAffected = await finishSessionCommand.ExecuteNonQueryAsync();
-            return rowsAffected > 0; // Return true if a session was updated (rowsAffected), else return false
+            return rowsAffected > 0;
         } catch (Exception ex)
         {
             Console.WriteLine($"Error finishing session: {ex.Message}");
@@ -136,17 +139,18 @@ public class SessionRepository : ISessionRepository
         }
     }
     // Method to cancel an active inventory session
-    public async Task<bool> CancelSession(int sessionId)
+    public async Task<bool> CancelSession(int sessionId, int userId)
     {
         try
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdCancelSession = @"UPDATE cs_inventory_sessions 
-            SET ses_status = 'canceled', ses_canceled_at = NOW()
+            string cmdCancelSession = @"UPDATE cs_inventory_sessions
+            SET ses_status = 'canceled', ses_canceled_at = NOW(), usr_canceled_by = @userId
             WHERE ses_id = @ses_id AND ses_status = 'active'";
             using MySqlCommand cancelSessionCommand = new MySqlCommand(cmdCancelSession, connection);
             cancelSessionCommand.Parameters.AddWithValue("@ses_id", sessionId);
+            cancelSessionCommand.Parameters.AddWithValue("@userId", userId);
             int rowsAffected = await cancelSessionCommand.ExecuteNonQueryAsync();
             return rowsAffected > 0;
         } catch (Exception ex)

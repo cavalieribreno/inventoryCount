@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import ListProducts from './modules/Products/ListProducts';
 import Sessions from './modules/Sessions/Sessions';
 import SessionProducts from './modules/Sessions/SessionProducts';
 import Login from './modules/Auth/Login';
@@ -26,8 +25,7 @@ function AppLayout() {
       <Header />
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<ListProducts/>}/>
-          <Route path="/sessions" element={<Sessions/>}/>
+          <Route path="/" element={<Sessions/>}/>
           <Route path="/sessions/:sessionId" element={<SessionProducts/>}/>
           <Route path="*" element={<Navigate to="/" />}/>
         </Routes>
@@ -50,13 +48,7 @@ function Header() {
         <nav className="app-nav">
           <Link
             to="/"
-            className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
-          >
-            Produtos
-          </Link>
-          <Link
-            to="/sessions"
-            className={`nav-link ${location.pathname.startsWith('/sessions') ? 'active' : ''}`}
+            className={`nav-link ${location.pathname === '/' || location.pathname.startsWith('/sessions') ? 'active' : ''}`}
           >
             Inventários
           </Link>
