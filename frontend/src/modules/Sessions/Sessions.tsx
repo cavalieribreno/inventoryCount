@@ -125,24 +125,20 @@ function Sessions() {
         <div>
             <h1>Inventários</h1>
 
-            <div className="filters">
-                <div>
+            <div className="filters filters-nowrap">
+                <span>
                     <strong>Inventário ativo: </strong>
                     {activeSession
                         ? <span>#{activeSession.id} — {activeSession.month ? monthNames[activeSession.month] + "/" : "Anual — "}{activeSession.year} (iniciado em {new Date(activeSession.startDate).toLocaleString()})</span>
                         : <span>Nenhum inventário ativo</span>
                     }
-                    {activeSession && (
-                        <>
-                            <button onClick={() => handleFinish(activeSession.id)} style={{ marginLeft: "12px" }}>
-                                Finalizar
-                            </button>
-                            <button onClick={() => handleCancel(activeSession.id)} style={{ marginLeft: "8px" }}>
-                                Cancelar
-                            </button>
-                        </>
-                    )}
-                </div>
+                </span>
+                {activeSession && (
+                    <>
+                        <button onClick={() => handleFinish(activeSession.id)}>Finalizar</button>
+                        <button onClick={() => handleCancel(activeSession.id)}>Cancelar</button>
+                    </>
+                )}
             </div>
 
             {!activeSession && (

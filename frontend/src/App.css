@@ -197,8 +197,17 @@ body {
   gap: var(--spacing-lg);
   flex-wrap: wrap;
   align-items: flex-end;
+  justify-content: center;
   box-shadow: var(--shadow-sm);
   transition: box-shadow var(--transition-fast);
+}
+
+.filters-nowrap {
+  flex-wrap: nowrap;
+  align-items: center;
+  white-space: nowrap;
+  width: fit-content;
+  min-width: 100%;
 }
 
 .filters:hover {

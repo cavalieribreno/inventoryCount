@@ -1,6 +1,6 @@
 # CSINV — Sistema de Inventário Cacau Show
 
-Sistema web para gerenciamento de inventário de produtos da Cacau Show. Permite criar sessões de inventário **mensal ou anual**, registrar produtos com quantidades, filtrar e consultar o histórico de entradas.
+Sistema web para gerenciamento de inventário de produtos da Cacau Show. Permite criar sessões de inventário **mensal ou anual**, registrar produtos com quantidades, filtrar e consultar o histórico de entradas. Sistema com autenticação JWT e rastreamento de usuários.
 
 ---
 
@@ -9,6 +9,7 @@ Sistema web para gerenciamento de inventário de produtos da Cacau Show. Permite
 | Camada | Tecnologia |
 |--------|-----------|
 | Backend | C# .NET 10.0 · ASP.NET Core Web API |
+| Autenticação | JWT (Bearer) · BCrypt |
 | Banco de dados | MySQL / MariaDB |
 | Frontend | React 19 · TypeScript · Vite |
 
@@ -19,10 +20,16 @@ Sistema web para gerenciamento de inventário de produtos da Cacau Show. Permite
 ```
 csinv/
 ├── backend/
-│   ├── .env                          # Variáveis de ambiente (banco + URLs)
+│   ├── .env                          # Variáveis de ambiente (banco + URLs + JWT)
 │   └── Modules/
 │       ├── Database/
 │       │   └── DatabaseConnection.cs # Factory de conexão MySQL
+│       ├── Users/
+│       │   ├── Interfaces/           # IUserRepository, IUserService
+│       │   ├── UserController.cs
+│       │   ├── UserService.cs
+│       │   ├── UserRepository.cs
+│       │   └── UsersDTO.cs
 │       ├── Inventory/
 │       │   ├── Interfaces/           # IInventoryProductsRepository, IInventoryProductsService
 │       │   ├── InventoryProductsController.cs
@@ -37,17 +44,22 @@ csinv/
 │           └── SessionDTO.cs
 ├── frontend/
 │   └── src/
+│       ├── context/
+│       │   └── AuthContext.tsx        # Context de autenticação (JWT + localStorage)
+│       ├── services/
+│       │   └── api.ts                # Fetch wrapper com token JWT e redirect 401
 │       ├── modules/
+│       │   ├── Auth/
+│       │   │   └── Login.tsx         # Página de login
 │       │   ├── Products/
-│       │   │   ├── ListProducts.tsx      # Página de listagem e filtros
-│       │   │   ├── InsertProducts.tsx    # Página de inserção
 │       │   │   └── Models/ProductModel.tsx
 │       │   └── Sessions/
 │       │       ├── Sessions.tsx          # Página de gerenciamento de inventários
+│       │       ├── SessionProducts.tsx   # Produtos de uma sessão (filtros, paginação, inserção)
 │       │       └── Models/SessionModel.tsx
 │       ├── App.tsx                   # Roteamento e layout
 │       └── App.css                   # Design system
-├── Program.cs                        # Startup, DI, CORS
+├── Program.cs                        # Startup, DI, CORS, JWT
 └── csinv.csproj
 ```
 
@@ -71,6 +83,13 @@ Crie o banco, tabelas e views no MySQL:
 CREATE DATABASE csinventory;
 USE csinventory;
 
+CREATE TABLE cs_users (
+    usr_id       INT AUTO_INCREMENT PRIMARY KEY,
+    usr_name     VARCHAR(255) NOT NULL,
+    usr_email    VARCHAR(255) NOT NULL UNIQUE,
+    usr_password VARCHAR(255) NOT NULL
+);
+
 CREATE TABLE cs_inventory_sessions (
     ses_id          INT AUTO_INCREMENT PRIMARY KEY,
     ses_year        INT NOT NULL,
@@ -78,7 +97,13 @@ CREATE TABLE cs_inventory_sessions (
     ses_status      ENUM('active', 'finished', 'canceled') NOT NULL DEFAULT 'active',
     ses_started_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ses_finished_at DATETIME NULL,
-    ses_canceled_at DATETIME NULL
+    ses_canceled_at DATETIME NULL,
+    usr_created_by  INT NULL,
+    usr_finished_by INT NULL,
+    usr_canceled_by INT NULL,
+    FOREIGN KEY (usr_created_by) REFERENCES cs_users(usr_id),
+    FOREIGN KEY (usr_finished_by) REFERENCES cs_users(usr_id),
+    FOREIGN KEY (usr_canceled_by) REFERENCES cs_users(usr_id)
 );
 
 CREATE TABLE cs_products (
@@ -93,7 +118,9 @@ CREATE TABLE cs_inventory_items (
     inv_quantity   INT,
     inv_date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
     ses_id         INT,
-    FOREIGN KEY (ses_id) REFERENCES cs_inventory_sessions(ses_id)
+    usr_id         INT,
+    FOREIGN KEY (ses_id) REFERENCES cs_inventory_sessions(ses_id),
+    FOREIGN KEY (usr_id) REFERENCES cs_users(usr_id)
 );
 
 CREATE VIEW vw_inventory_items AS
@@ -103,11 +130,14 @@ SELECT
     s.ses_month,
     i.pro_code,
     p.pro_name,
+    i.usr_id,
+    u.usr_name,
     SUM(i.inv_quantity) AS total_quantity
 FROM cs_inventory_items i
 INNER JOIN cs_products p ON i.pro_code = p.pro_code
 INNER JOIN cs_inventory_sessions s ON i.ses_id = s.ses_id
-GROUP BY s.ses_id, s.ses_year, s.ses_month, i.pro_code, p.pro_name;
+INNER JOIN cs_users u ON i.usr_id = u.usr_id
+GROUP BY s.ses_id, s.ses_year, s.ses_month, i.pro_code, p.pro_name, i.usr_id, u.usr_name;
 
 CREATE VIEW vw_inventory_sessions AS
 SELECT
@@ -139,6 +169,11 @@ DB_PORT=3306
 # URLs
 FRONTEND_URL=http://localhost:5173
 BACKEND_URL=http://localhost:5144
+
+# JWT
+JWT_SECRET=sua-chave-secreta
+JWT_ISSUER=http://localhost:5144
+JWT_AUDIENCE=http://localhost:5173
 ```
 
 ---
@@ -168,6 +203,44 @@ O frontend sobe em `http://localhost:5173`.
 
 ## API Reference
 
+> Todos os endpoints (exceto login e register) exigem autenticação via **Bearer Token** no header `Authorization`.
+
+### Autenticação — `/api/users`
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `POST` | `/api/users/register` | Registra um novo usuário |
+| `POST` | `/api/users/login` | Autentica e retorna JWT |
+
+**POST /api/users/register — body:**
+```json
+{
+  "name": "João",
+  "email": "joao@email.com",
+  "password": "senha123"
+}
+```
+
+**POST /api/users/login — body:**
+```json
+{
+  "email": "joao@email.com",
+  "password": "senha123"
+}
+```
+
+**Resposta (200):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "userId": 1,
+  "name": "João",
+  "email": "joao@email.com"
+}
+```
+
+---
+
 ### Inventários (Sessões) — `/api/sessions`
 
 | Método | Rota | Descrição |
@@ -176,31 +249,41 @@ O frontend sobe em `http://localhost:5173`.
 | `POST` | `/api/sessions/create` | Cria um novo inventário |
 | `PATCH` | `/api/sessions/{sessionId}/finish` | Finaliza o inventário ativo |
 | `PATCH` | `/api/sessions/{sessionId}/cancel` | Cancela o inventário ativo |
-| `GET` | `/api/sessions/getall` | Lista todos os inventários com total de itens |
+| `GET` | `/api/sessions/getall` | Lista todos os inventários com filtros e paginação |
 
 **POST /api/sessions/create — body:**
 ```json
 // Inventário mensal
 {
-  "year": 2025,
+  "year": 2026,
   "month": 3
 }
 
 // Inventário anual (month = null)
 {
-  "year": 2025,
+  "year": 2026,
   "month": null
 }
 ```
+
+**GET /api/sessions/getall — query params:**
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `year` | int | não | Filtro pelo ano |
+| `month` | int | não | Filtro pelo mês (1–12) |
+| `status` | string | não | Filtro pelo status (active, finished, canceled) |
+| `page` | int | não | Página (padrão: 1) |
+| `pageSize` | int | não | Itens por página (padrão: 10) |
 
 **Resposta (200):**
 ```json
 {
   "id": 1,
-  "year": 2025,
+  "year": 2026,
   "month": 3,
   "status": "active",
-  "startDate": "2025-03-01T10:00:00",
+  "startDate": "2026-03-01T10:00:00",
   "finishDate": null,
   "cancelDate": null,
   "totalItems": 0
@@ -222,6 +305,7 @@ O frontend sobe em `http://localhost:5173`.
 | `POST` | `/api/products/insert` | Insere um produto no inventário |
 | `GET` | `/api/products/filter` | Lista produtos com filtros e paginação |
 | `GET` | `/api/products/details/{code}` | Detalha todas as entradas de um código |
+| `GET` | `/api/products/session/{sessionId}` | Lista produtos de uma sessão com filtros e paginação |
 | `DELETE` | `/api/products/delete/{productId}` | Remove uma entrada de inventário |
 
 **POST /api/products/insert — body:**
@@ -244,25 +328,14 @@ O frontend sobe em `http://localhost:5173`.
 | `page` | int | não | Página (padrão: 1) |
 | `pageSize` | int | não | Itens por página (padrão: 10) |
 
-**Resposta (200):**
-```json
-[
-  {
-    "productName": "Trufa de Chocolate",
-    "code": "ABC123",
-    "year": 2025,
-    "month": 3,
-    "totalQuantity": 50
-  },
-  {
-    "productName": "Caixa Bombons",
-    "code": "DEF456",
-    "year": 2025,
-    "month": null,
-    "totalQuantity": 20
-  }
-]
-```
+**GET /api/products/session/{sessionId} — query params:**
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `productName` | string | não | Filtro parcial pelo nome |
+| `code` | string | não | Filtro exato pelo código |
+| `page` | int | não | Página (padrão: 1) |
+| `pageSize` | int | não | Itens por página (padrão: 10) |
 
 ---
 
@@ -270,8 +343,8 @@ O frontend sobe em `http://localhost:5173`.
 
 O backend segue o padrão **Controller → Service → Repository**:
 
-- **Controller** — recebe requisições HTTP, valida entrada básica, retorna respostas
-- **Service** — contém as regras de negócio (ex: impedir inventário duplicado, validar sessão ativa, validar mês/ano)
+- **Controller** — recebe requisições HTTP, extrai userId do token JWT, retorna respostas
+- **Service** — contém as regras de negócio (ex: impedir inventário duplicado, validar sessão ativa, gerar JWT)
 - **Repository** — executa as queries SQL via MySql.Data
 - **DTOs** — desacoplam o contrato da API dos modelos internos
 
@@ -279,27 +352,37 @@ Todas as queries usam **parâmetros nomeados** para prevenção de SQL Injection
 
 As views `vw_inventory_items` e `vw_inventory_sessions` centralizam as agregações no banco, evitando lógica de cálculo no código da aplicação.
 
+### Autenticação
+
+- Senhas armazenadas com **BCrypt** (hash + salt)
+- Token **JWT** com expiração de 8 horas
+- Claims: `NameIdentifier` (userId), `Name`, `Email`
+- Frontend injeta o token automaticamente via `apiFetch()` wrapper
+- Token expirado (401) redireciona para a tela de login
+
 ---
 
 ## Páginas do frontend
 
-### Inventários (`/sessions`)
+### Login (`/`)
+- Formulário com email e senha
+- Redireciona para inventários após login
+- Exibido automaticamente quando não há token válido
+
+### Inventários (`/`)
 - Exibe o inventário ativo com botões para finalizar ou cancelar
 - Formulário para criar um novo inventário com seleção de mês (opcional) e ano (só disponível quando não há ativo)
 - Se não selecionar mês, cria inventário **anual** (exibe "Anual" na tabela)
-- Tabela com todos os inventários: ID, ano, mês, status, datas e **total de itens**
+- Filtros por ano, mês e status
+- Tabela paginada com todos os inventários: ID, ano, mês, status, datas e **total de itens**
+- Clique na linha para ver os produtos da sessão
 
-### Listagem de Produtos (`/`)
-- Filtros por nome, código, ano e mês
-- Tabela paginada (10 itens por página) — mês exibe nome em português ou "Anual"
-- Botão `...` abre modal com todas as entradas individuais do produto
-- Cada entrada pode ser excluída diretamente no modal
-
-### Inserção de Produto (`/insert`)
-- Busca automaticamente a sessão ativa e exibe o mês/ano (ou só o ano se for anual)
-- Formulário com código do produto e quantidade
-- Se não houver sessão ativa, exibe mensagem orientando a criar um inventário primeiro
-- Validação feita pelo backend
+### Produtos da Sessão (`/sessions/:sessionId`)
+- Informações da sessão (status, início, total de itens)
+- Formulário de inserção de produto (código + quantidade) — apenas para sessões ativas
+- Filtros por nome e código do produto
+- Tabela paginada: nome, código, quantidade, data, **inserido por**, ações
+- Botão de excluir entrada — apenas para sessões ativas
 
 ---
 
