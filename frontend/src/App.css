@@ -133,6 +133,7 @@ body {
 .app-nav {
   display: flex;
   gap: var(--spacing-lg);
+  align-items: center;
 }
 
 .nav-link {
@@ -173,6 +174,38 @@ body {
   background: rgba(255, 255, 255, 0.1);
   color: var(--color-error);
   border-color: var(--color-error);
+}
+
+.profile-wrapper {
+  position: relative;
+}
+
+.profile-link {
+  cursor: pointer;
+}
+
+.profile-popup {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: var(--spacing-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-lg);
+  white-space: nowrap;
+  z-index: 10;
+  color: var(--color-text-primary);
+}
+
+.profile-wrapper:hover .profile-popup {
+  display: block;
+}
+
+.profile-popup p {
+  margin: var(--spacing-xs) 0;
 }
 
 .main-content {

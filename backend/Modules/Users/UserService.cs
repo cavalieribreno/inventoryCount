@@ -26,7 +26,7 @@ public class UserService : IUserService
         var user = await _userRepository.LoginUser(request);
         if(user == null) return null;
         
-        // Generate JWT token
+        // if user ok, generate token for him
         user.Token = GenerateJwtToken(user);
         return user;
     }

@@ -36,8 +36,7 @@ function AppLayout() {
 
 function Header() {
   const location = useLocation();
-  const { logout } = useAuth();
-
+  const { logout, user } = useAuth();
   return (
     <header className="app-header">
       <div className="header-container">
@@ -52,6 +51,15 @@ function Header() {
           >
             Inventários
           </Link>
+          <div className="profile-wrapper">
+            <span className="nav-link profile-link">
+              {user?.name}
+            </span>
+            <div className="profile-popup">
+              <p><strong>Nome:</strong> {user?.name}</p>
+              <p><strong>Email:</strong> {user?.email}</p>
+            </div>
+          </div>
           <button className="nav-logout" onClick={logout}>Sair</button>
         </nav>
       </div>
