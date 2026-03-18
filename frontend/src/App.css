@@ -358,6 +358,15 @@ tbody tr:last-child td {
 }
 
 /* ========================================
+   EMPTY STATE
+   ======================================== */
+
+.empty-row {
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+/* ========================================
    PAGINATION
    ======================================== */
 
@@ -688,5 +697,62 @@ tbody button {
 tbody button:hover {
   opacity: 0.85;
   transform: translateY(-1px);
+}
+
+/* ========================================
+   BUTTON DETAILS
+   ======================================== */
+
+.btn-details {
+  padding: 6px 14px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-details:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   MODAL
+   ======================================== */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content h3 {
+  margin-bottom: 16px;
+  color: var(--color-primary);
+}
+
+.modal-content .btn-details {
+  margin-top: 16px;
 }
 

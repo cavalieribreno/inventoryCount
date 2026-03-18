@@ -31,142 +31,73 @@ public class InventoryProductsRepository : IInventoryProductsRepository
             return false;
         }
     }
-    // Method to get products based on filter
-    public async Task<List<ProductsFilterResponse>> GetProductsByFilter(ProductsFilterRequest filter)
+    // Method to get products grouped
+    public async Task<List<SessionGroupedProductsResponse>> GetSessionGroupedProducts(int sessionId, SessionProductsFilterRequest filter)
     {
-        // list to hold the resulting products
-        List<ProductsFilterResponse> products = new List<ProductsFilterResponse>();
+        List<SessionGroupedProductsResponse> products = new List<SessionGroupedProductsResponse>();
         try
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            // Prepare the command with dynamic query
             using MySqlCommand command = new MySqlCommand();
-            // Base SQL query
-            string cmdSelectProducts = @"SELECT ses_year, ses_month, pro_code, pro_name, total_quantity, usr_id, usr_name FROM vw_inventory_items WHERE 1=1";
-        
+            string cmdGroupedProducts = @"SELECT i.pro_code, p.pro_name, SUM(i.inv_quantity) AS total_quantity
+            FROM cs_inventory_items i
+            INNER JOIN cs_products p ON i.pro_code = p.pro_code
+            WHERE i.ses_id = @sessionId";
+            command.Parameters.AddWithValue("@sessionId", sessionId);
+
             // Dinamic query construction based on filter
             if (!string.IsNullOrEmpty(filter.ProductName))
             {
-                cmdSelectProducts += " AND pro_name LIKE @productName";
+                cmdGroupedProducts += " AND p.pro_name LIKE @productName";
                 command.Parameters.AddWithValue("@productName", $"%{filter.ProductName}%");
             }
             if (!string.IsNullOrEmpty(filter.Code))
             {
-                cmdSelectProducts += " AND pro_code = @code";
+                cmdGroupedProducts += " AND i.pro_code = @code";
                 command.Parameters.AddWithValue("@code", filter.Code);
             }
-            if(filter.Year.HasValue)
-            {
-                cmdSelectProducts += " AND ses_year = @year";
-                command.Parameters.AddWithValue("@year", filter.Year.Value);
-            }
-            if(filter.Month.HasValue)
-            {
-                cmdSelectProducts += " AND ses_month = @month";
-                command.Parameters.AddWithValue("@month", filter.Month.Value);
-            }
-            // Finalize command setup
-            command.CommandText = cmdSelectProducts;
-            command.Connection = connection;
-
-            // Add pagination parameters
             int offset = (filter.Page - 1) * filter.PageSize;
-            command.CommandText += " ORDER BY pro_name LIMIT @pageSize OFFSET @offset";
+
+            // Group by product code, order by name and apply pagination
+            cmdGroupedProducts += " GROUP BY i.pro_code, p.pro_name ORDER BY p.pro_name LIMIT @pageSize OFFSET @offset";
             command.Parameters.AddWithValue("@pageSize", filter.PageSize);
             command.Parameters.AddWithValue("@offset", offset);
-
-
-            // Execute the command and read results
+            command.CommandText = cmdGroupedProducts;
+            command.Connection = connection;
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                products.Add(new ProductsFilterResponse
+                products.Add(new SessionGroupedProductsResponse
                 {
-                    ProductName = reader["pro_name"].ToString(),
                     Code = reader["pro_code"].ToString(),
-                    Year = Convert.ToInt32(reader["ses_year"]),
-                    Month = reader["ses_month"] == DBNull.Value ? null : Convert.ToInt32(reader["ses_month"]),
-                    TotalQuantity = Convert.ToInt32(reader["total_quantity"]),
-                    UserId = Convert.ToInt32(reader["usr_id"]),
-                    UserName = reader["usr_name"].ToString()
+                    ProductName = reader["pro_name"].ToString(),
+                    TotalQuantity = Convert.ToInt32(reader["total_quantity"])
                 });
             }
         } catch (Exception ex)
         {
-            Console.WriteLine($"Error retrieving products: {ex.Message}");
+            Console.WriteLine($"Error retrieving grouped products: {ex.Message}");
         }
         return products;
     }
     // Method to get all products details by code  
-    public async Task<List<ProductsDetailsResponse>> GetProductsDetailsByCode(string code)
+    public async Task<List<ProductsDetailsResponse>> GetProductsDetails(string code, int sessionId)
     {
         List<ProductsDetailsResponse> products = new List<ProductsDetailsResponse>();
         try
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdSelectProducts = @"SELECT i.inv_id, i.pro_code, p.pro_name, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added
-            FROM cs_inventory_items i
-            INNER JOIN cs_inventory_sessions s ON i.ses_id = s.ses_id
-            INNER JOIN cs_products p ON i.pro_code = p.pro_code
-            WHERE i.pro_code = @code";
-            using MySqlCommand command = new MySqlCommand(cmdSelectProducts, connection);
-            command.Parameters.AddWithValue("@code", code);
-            using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                products.Add(new ProductsDetailsResponse
-                {
-                    Id = Convert.ToInt32(reader["inv_id"]),
-                    Code = reader["pro_code"].ToString(),
-                    ProductName = reader["pro_name"].ToString(),
-                    Quantity = Convert.ToInt32(reader["inv_quantity"]),
-                    Year = Convert.ToInt32(reader["ses_year"]),
-                    Month = reader["ses_month"] == DBNull.Value ? null : Convert.ToInt32(reader["ses_month"]),
-                    DateHour = Convert.ToDateTime(reader["inv_date_added"])
-                });
-            }
-        } catch (Exception ex)
-        {
-            Console.WriteLine($"Error retrieving product details: {ex.Message}");
-        }
-        return products;
-    }
-    // Method to get all products by sessionId with filters and pagination
-    public async Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId, SessionProductsFilterRequest filter)
-    {
-        List<ProductsDetailsResponse> products = new List<ProductsDetailsResponse>();
-        try
-        {
-            using MySqlConnection connection = DatabaseConnection.Connection();
-            await connection.OpenAsync();
-            using MySqlCommand command = new MySqlCommand();
-            string cmdSessionProducts = @"SELECT i.inv_id, i.pro_code, p.pro_name, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added, u.usr_name
+            string cmdSelectProducts = @"SELECT i.inv_id, i.pro_code, p.pro_name, i.inv_quantity, s.ses_year, s.ses_month, i.inv_date_added, u.usr_name
             FROM cs_inventory_items i
             INNER JOIN cs_inventory_sessions s ON i.ses_id = s.ses_id
             INNER JOIN cs_products p ON i.pro_code = p.pro_code
             INNER JOIN cs_users u ON i.usr_id = u.usr_id
-            WHERE i.ses_id = @sessionId";
+            WHERE i.pro_code = @code AND i.ses_id = @sessionId";
+            using MySqlCommand command = new MySqlCommand(cmdSelectProducts, connection);
+            command.Parameters.AddWithValue("@code", code);
             command.Parameters.AddWithValue("@sessionId", sessionId);
-            
-            // Dinamic query construction based on filter
-            if (!string.IsNullOrEmpty(filter.ProductName))
-            {
-                cmdSessionProducts += " AND p.pro_name LIKE @productName";
-                command.Parameters.AddWithValue("@productName", $"%{filter.ProductName}%");
-            }
-            if (!string.IsNullOrEmpty(filter.Code))
-            {
-                cmdSessionProducts += " AND i.pro_code = @code";
-                command.Parameters.AddWithValue("@code", filter.Code);
-            }
-            int offset = (filter.Page - 1) * filter.PageSize;
-            cmdSessionProducts += " ORDER BY i.inv_date_added DESC LIMIT @pageSize OFFSET @offset";
-            command.Parameters.AddWithValue("@pageSize", filter.PageSize);
-            command.Parameters.AddWithValue("@offset", offset);
-            command.CommandText = cmdSessionProducts;
-            command.Connection = connection;
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
@@ -182,12 +113,11 @@ public class InventoryProductsRepository : IInventoryProductsRepository
                     UserName = reader["usr_name"].ToString()
                 });
             }
-            return products;
         } catch (Exception ex)
         {
-            Console.WriteLine($"Error retrieving session products: {ex.Message}");
-            return products;
+            Console.WriteLine($"Error retrieving product details: {ex.Message}");
         }
+        return products;
     }
     // Method to delete a product by product id
     public async Task<bool> DeleteProductById(int productId)

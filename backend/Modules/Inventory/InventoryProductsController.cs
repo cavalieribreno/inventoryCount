@@ -37,41 +37,19 @@ public class InventoryProductsController : ControllerBase
             return StatusCode(500, "An error occurred while inserting the product.");
         }
     }
-    // Endpoint to get products based on filter 
-    [HttpGet("filter")]
-    public async Task<IActionResult> GetProductsByFilter([FromQuery] ProductsFilterRequest filter)
+    // Endpoint to get grouped products of a session
+    [HttpGet("session/{sessionId}/grouped")]
+    public async Task<IActionResult> GetSessionGroupedProducts(int sessionId, [FromQuery] SessionProductsFilterRequest filter)
     {
-        var products = await _productsService.GetProductsByFilter(filter);
-        if(products == null || products.Count == 0)
-        {
-            return NotFound("No products found matching the filter criteria.");
-        }
+        var products = await _productsService.GetSessionGroupedProducts(sessionId, filter);
         return Ok(products);
     }
-    // Endpoint to get product details by code
-    [HttpGet("details/{code}")]
-    public async Task<IActionResult> GetProductsDetailsByCode(string code)
+    // Endpoint to get product details by code and session
+    [HttpGet("session/{sessionId}/details/{code}")]
+    public async Task<IActionResult> GetProductsDetails(string code, int sessionId)
     {
-        var products = await _productsService.GetProductsDetailsByCode(code);
-        if(products == null || products.Count == 0)
-        {
-            return NotFound("No products found with the specified code.");
-        }
+        var products = await _productsService.GetProductsDetails(code, sessionId);
         return Ok(products);
-    }
-    // Endpoint to get products of a session
-    [HttpGet("session/{sessionId}")]
-    public async Task<IActionResult> GetSessionProducts(int sessionId, [FromQuery] SessionProductsFilterRequest filter)
-    {
-        try
-        {
-            var products = await _productsService.GetSessionProducts(sessionId, filter);
-            return Ok(products);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(ex.Message);
-        }
     }
     // Endpoint to delete product by id
     [HttpDelete("delete/{productId}")]

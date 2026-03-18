@@ -58,11 +58,6 @@ public class SessionService : ISessionService
     // Method to get all inventory sessions with filters and pagination
     public async Task<List<SessionResponse>> GetAllSessions(SessionFilterRequest filter)
     {
-        var sessions = await _sessionRepository.GetAllSessions(filter);
-        if (sessions == null || sessions.Count == 0)
-        {
-            throw new KeyNotFoundException("No inventory sessions found.");
-        }
-        return sessions;
+        return await _sessionRepository.GetAllSessions(filter);
     }
 }

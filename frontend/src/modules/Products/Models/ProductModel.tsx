@@ -5,6 +5,11 @@ export interface Product {
     month: number | null;
     totalQuantity: number;
 }
+export interface GroupedProduct {
+    code: string;
+    productName: string;
+    totalQuantity: number;
+}
 export interface ProductDetails{
     id: number,
     code: string,

@@ -212,7 +212,11 @@ function Sessions() {
                     </tr>
                 </thead>
                 <tbody>
-                    {sessions.map((session) => (
+                    {sessions.length === 0 ? (
+                        <tr>
+                            <td colSpan={8} className="empty-row">Nenhum inventário encontrado.</td>
+                        </tr>
+                    ) : sessions.map((session) => (
                         <tr key={session.id} onClick={() => navigate(`/sessions/${session.id}`)} style={{ cursor: "pointer" }}>
                             <td>{session.id}</td>
                             <td>{session.year}</td>
@@ -226,11 +230,13 @@ function Sessions() {
                     ))}
                 </tbody>
             </table>
-            <div className="pagination">
-                <button onClick={() => fetchAllSessions(page - 1)} disabled={page === 1}>Anterior</button>
-                <span>Página {page}</span>
-                <button onClick={() => fetchAllSessions(page + 1)} disabled={sessions.length < 10}>Próxima</button>
-            </div>
+            {sessions.length > 0 && (
+                <div className="pagination">
+                    <button onClick={() => fetchAllSessions(page - 1)} disabled={page === 1}>Anterior</button>
+                    <span>Página {page}</span>
+                    <button onClick={() => fetchAllSessions(page + 1)} disabled={sessions.length < 10}>Próxima</button>
+                </div>
+            )}
         </div>
     )
 }

@@ -34,26 +34,15 @@ public class InventoryProductsService : IInventoryProductsService
         var result = await _productsrepository.InventoryInsertProduct(productCode, productQuantity, sessionId, userId);
         return result;
     }
-    // Method to get products by filter using the repository
-    public async Task<List<ProductsFilterResponse>> GetProductsByFilter(ProductsFilterRequest filter)
+    // Method to get grouped products of a session
+    public async Task<List<SessionGroupedProductsResponse>> GetSessionGroupedProducts(int sessionId, SessionProductsFilterRequest filter)
     {
-        var products = await _productsrepository.GetProductsByFilter(filter);
-        return products;
+        return await _productsrepository.GetSessionGroupedProducts(sessionId, filter);
     }
-    // Method to get product details by code
-    public async Task<List<ProductsDetailsResponse>> GetProductsDetailsByCode(string code)
+    // Method to get product details by code and session
+    public async Task<List<ProductsDetailsResponse>> GetProductsDetails(string code, int sessionId)
     {
-        var products = await _productsrepository.GetProductsDetailsByCode(code);
-        return products;
-    }
-    // Method to get products of a session
-    public async Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId, SessionProductsFilterRequest filter)
-    {
-        var products = await _productsrepository.GetSessionProducts(sessionId, filter);
-        if(products == null || products.Count == 0)
-        {
-            throw new InvalidOperationException("No products found for the provided session ID.");
-        }
+        var products = await _productsrepository.GetProductsDetails(code, sessionId);
         return products;
     }
     // Method do delete product by id

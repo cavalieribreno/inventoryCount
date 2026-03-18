@@ -5,8 +5,7 @@ namespace Csinv.InventoryProducts.Interfaces;
 public interface IInventoryProductsRepository
 {
     Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId, int userId);
-    Task<List<ProductsFilterResponse>> GetProductsByFilter(ProductsFilterRequest filter);
-    Task<List<ProductsDetailsResponse>> GetProductsDetailsByCode(string code);
-    Task<List<ProductsDetailsResponse>> GetSessionProducts(int sessionId, SessionProductsFilterRequest filter);
+    Task<List<SessionGroupedProductsResponse>> GetSessionGroupedProducts(int sessionId, SessionProductsFilterRequest filter);
+    Task<List<ProductsDetailsResponse>> GetProductsDetails(string code, int sessionId);
     Task<bool> DeleteProductById(int productId);
 }

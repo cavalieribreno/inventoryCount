@@ -19,18 +19,7 @@ public class ProductsDetailsResponse
     // User information
     public string? UserName { get; set; }
 }
-// Data Transfer Object to products filter requests and pagination
-public class ProductsFilterRequest
-{
-    public string? ProductName { get; set; }
-    public string? Code { get; set; }
-    public int? Year { get; set; }
-    public int? Month { get; set; }
 
-    // Pagination properties
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
-}
 // Data Transfer Object for session products filter with pagination
 public class SessionProductsFilterRequest
 {
@@ -41,14 +30,10 @@ public class SessionProductsFilterRequest
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }
-// Data Transfer Object for product filter responses
-public class ProductsFilterResponse
+// Data Transfer Object for grouped session products response
+public class SessionGroupedProductsResponse
 {
-    public string? ProductName { get; set; }
     public string? Code { get; set; }
-    public int Year { get; set; }
-    public int? Month { get; set; }
-    public int UserId { get; set; }
-    public string? UserName { get; set; } 
+    public string? ProductName { get; set; }
     public int TotalQuantity { get; set; }
 }
