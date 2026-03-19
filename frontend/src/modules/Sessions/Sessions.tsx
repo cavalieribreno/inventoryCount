@@ -5,6 +5,12 @@ import { apiFetch } from '../../services/api';
 
 const monthNames = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+const statusMap: Record<string, string> = {
+    active: "Ativo",
+    finished: "Finalizado",
+    canceled: "Cancelado"
+};
+
 function Sessions() {
     const navigate = useNavigate();
     // state variables for sessions list, active session, new session year and errors
@@ -201,7 +207,6 @@ function Sessions() {
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Ano</th>
                         <th>Mês</th>
                         <th>Status</th>
@@ -218,10 +223,9 @@ function Sessions() {
                         </tr>
                     ) : sessions.map((session) => (
                         <tr key={session.id} onClick={() => navigate(`/sessions/${session.id}`)} style={{ cursor: "pointer" }}>
-                            <td>{session.id}</td>
                             <td>{session.year}</td>
                             <td>{session.month ? monthNames[session.month] : "Anual"}</td>
-                            <td>{session.status}</td>
+                            <td>{statusMap[session.status] ?? session.status}</td>
                             <td>{new Date(session.startDate).toLocaleString()}</td>
                             <td>{session.finishDate ? new Date(session.finishDate).toLocaleString() : "—"}</td>
                             <td>{session.cancelDate ? new Date(session.cancelDate).toLocaleString() : "—"}</td>

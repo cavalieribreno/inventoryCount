@@ -20,24 +20,26 @@ Sistema web para gerenciamento de inventário de produtos da Cacau Show. Permite
 ```
 csinv/
 ├── backend/
-│   ├── .env                          # Variáveis de ambiente (banco + URLs + JWT)
+│   ├── .env                            # Variáveis de ambiente (banco + URLs + JWT)
+│   ├── Program.cs                      # Startup, DI, CORS, JWT
+│   ├── csinv.csproj
 │   └── Modules/
 │       ├── Database/
-│       │   └── DatabaseConnection.cs # Factory de conexão MySQL
+│       │   └── DatabaseConnection.cs   # Factory de conexão MySQL
 │       ├── Users/
-│       │   ├── Interfaces/           # IUserRepository, IUserService
+│       │   ├── Interfaces/             # IUserRepository, IUserService
 │       │   ├── UserController.cs
 │       │   ├── UserService.cs
 │       │   ├── UserRepository.cs
 │       │   └── UsersDTO.cs
 │       ├── Inventory/
-│       │   ├── Interfaces/           # IInventoryProductsRepository, IInventoryProductsService
+│       │   ├── Interfaces/             # IInventoryProductsRepository, IInventoryProductsService
 │       │   ├── InventoryProductsController.cs
 │       │   ├── InventoryProductsService.cs
 │       │   ├── InventoryProductsRepository.cs
 │       │   └── InventoryProductsDTO.cs
 │       └── InventorySessions/
-│           ├── Interfaces/           # ISessionRepository, ISessionService
+│           ├── Interfaces/             # ISessionRepository, ISessionService
 │           ├── SessionController.cs
 │           ├── SessionService.cs
 │           ├── SessionRepository.cs
@@ -45,22 +47,22 @@ csinv/
 ├── frontend/
 │   └── src/
 │       ├── context/
-│       │   └── AuthContext.tsx        # Context de autenticação (JWT + localStorage)
+│       │   └── AuthContext.tsx          # Context de autenticação (JWT + localStorage)
 │       ├── services/
-│       │   └── api.ts                # Fetch wrapper com token JWT e redirect 401
+│       │   └── api.ts                  # Fetch wrapper com token JWT e redirect 401
 │       ├── modules/
 │       │   ├── Auth/
-│       │   │   └── Login.tsx         # Página de login
+│       │   │   └── Login.tsx           # Página de login
 │       │   ├── Products/
-│       │   │   └── Models/ProductModel.tsx
+│       │   │   └── Models/
+│       │   │       └── ProductModel.tsx # GroupedProduct, ProductDetails
 │       │   └── Sessions/
-│       │       ├── Sessions.tsx          # Página de gerenciamento de inventários
-│       │       ├── SessionProducts.tsx   # Produtos de uma sessão (filtros, paginação, inserção)
-│       │       └── Models/SessionModel.tsx
-│       ├── App.tsx                   # Roteamento e layout
-│       └── App.css                   # Design system
-├── Program.cs                        # Startup, DI, CORS, JWT
-└── csinv.csproj
+│       │       ├── Sessions.tsx         # Página de inventários (listagem, filtros, criação)
+│       │       ├── SessionProducts.tsx  # Produtos agrupados, modal de detalhes, inserção
+│       │       └── Models/
+│       │           └── SessionModel.tsx # Session
+│       ├── App.tsx                     # Roteamento, layout e header com perfil
+│       └── App.css                     # Design system completo
 ```
 
 ---
@@ -303,9 +305,8 @@ O frontend sobe em `http://localhost:5173`.
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `POST` | `/api/products/insert` | Insere um produto no inventário |
-| `GET` | `/api/products/filter` | Lista produtos com filtros e paginação |
-| `GET` | `/api/products/details/{code}` | Detalha todas as entradas de um código |
-| `GET` | `/api/products/session/{sessionId}` | Lista produtos de uma sessão com filtros e paginação |
+| `GET` | `/api/products/session/{sessionId}/grouped` | Lista produtos agrupados por código com quantidade total |
+| `GET` | `/api/products/session/{sessionId}/details/{code}` | Lista todas as inserções individuais de um produto na sessão |
 | `DELETE` | `/api/products/delete/{productId}` | Remove uma entrada de inventário |
 
 **POST /api/products/insert — body:**
@@ -317,18 +318,7 @@ O frontend sobe em `http://localhost:5173`.
 }
 ```
 
-**GET /api/products/filter — query params:**
-
-| Parâmetro | Tipo | Obrigatório | Descrição |
-|-----------|------|-------------|-----------|
-| `productName` | string | não | Filtro parcial pelo nome |
-| `code` | string | não | Filtro exato pelo código |
-| `year` | int | não | Filtro pelo ano |
-| `month` | int | não | Filtro pelo mês (1–12, vazio = todos) |
-| `page` | int | não | Página (padrão: 1) |
-| `pageSize` | int | não | Itens por página (padrão: 10) |
-
-**GET /api/products/session/{sessionId} — query params:**
+**GET /api/products/session/{sessionId}/grouped — query params:**
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |-----------|------|-------------|-----------|
@@ -336,6 +326,33 @@ O frontend sobe em `http://localhost:5173`.
 | `code` | string | não | Filtro exato pelo código |
 | `page` | int | não | Página (padrão: 1) |
 | `pageSize` | int | não | Itens por página (padrão: 10) |
+
+**Resposta (200):**
+```json
+[
+  {
+    "code": "ABC123",
+    "productName": "Baton",
+    "totalQuantity": 65
+  }
+]
+```
+
+**GET /api/products/session/{sessionId}/details/{code} — resposta (200):**
+```json
+[
+  {
+    "id": 1,
+    "code": "ABC123",
+    "productName": "Baton",
+    "quantity": 10,
+    "year": 2026,
+    "month": 3,
+    "dateHour": "2026-03-14T19:39:33",
+    "userName": "Breno"
+  }
+]
+```
 
 ---
 
@@ -370,6 +387,7 @@ As views `vw_inventory_items` e `vw_inventory_sessions` centralizam as agregaç�
 - Exibido automaticamente quando não há token válido
 
 ### Inventários (`/`)
+- Header com nome do usuário e popup de perfil (nome e email) ao passar o mouse
 - Exibe o inventário ativo com botões para finalizar ou cancelar
 - Formulário para criar um novo inventário com seleção de mês (opcional) e ano (só disponível quando não há ativo)
 - Se não selecionar mês, cria inventário **anual** (exibe "Anual" na tabela)
@@ -381,8 +399,9 @@ As views `vw_inventory_items` e `vw_inventory_sessions` centralizam as agregaç�
 - Informações da sessão (status, início, total de itens)
 - Formulário de inserção de produto (código + quantidade) — apenas para sessões ativas
 - Filtros por nome e código do produto
-- Tabela paginada: nome, código, quantidade, data, **inserido por**, ações
-- Botão de excluir entrada — apenas para sessões ativas
+- Tabela paginada com produtos **agrupados por código**: nome, código, quantidade total
+- Botão "Detalhes" abre um **modal** com todas as inserções individuais do produto (quantidade, data, inserido por)
+- Botão de excluir entrada no modal — apenas para sessões ativas
 
 ---
 

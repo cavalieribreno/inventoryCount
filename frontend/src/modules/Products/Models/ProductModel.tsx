@@ -1,10 +1,3 @@
-export interface Product {
-    productName: string;
-    code: string;
-    year: number;
-    month: number | null;
-    totalQuantity: number;
-}
 export interface GroupedProduct {
     code: string;
     productName: string;
