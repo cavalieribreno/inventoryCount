@@ -7,4 +7,7 @@ export interface Session {
     finishDate: string | null;
     cancelDate: string | null;
     totalItems: number;
+    createdByName: string;
+    finishedByName: string | null;
+    canceledByName: string | null;
 }

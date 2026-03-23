@@ -137,7 +137,15 @@ function SessionProducts() {
 
             {session && (
                 <div className="filters">
-                    <p><strong>Status:</strong> {session.status} | <strong>Início:</strong> {new Date(session.startDate).toLocaleString()} | <strong>Total itens:</strong> {session.totalItems}</p>
+                    <p>
+                        <strong>Status:</strong> {session.status} | <strong>Início:</strong> {new Date(session.startDate).toLocaleString()} | <strong>Criado por:</strong> {session.createdByName} | <strong>Total itens:</strong> {session.totalItems}
+                        {session.status === "finished" && session.finishDate && (
+                            <> | <strong>Finalizado em:</strong> {new Date(session.finishDate).toLocaleString()} | <strong>Finalizado por:</strong> {session.finishedByName}</>
+                        )}
+                        {session.status === "canceled" && session.cancelDate && (
+                            <> | <strong>Cancelado em:</strong> {new Date(session.cancelDate).toLocaleString()} | <strong>Cancelado por:</strong> {session.canceledByName}</>
+                        )}
+                    </p>
                 </div>
             )}
 
@@ -159,41 +167,40 @@ function SessionProducts() {
                 <button onClick={() => fetchGroupedProducts(1)}>Filtrar</button>
             </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Código</th>
-                        <th>Qtd Total</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {groupedProducts.length === 0 ? (
-                        <tr>
-                            <td colSpan={4} className="empty-row">Nenhum produto encontrado.</td>
-                        </tr>
-                    ) : groupedProducts.map((group) => (
-                        <tr key={group.code}>
-                            <td>{group.productName}</td>
-                            <td>{group.code}</td>
-                            <td>{group.totalQuantity}</td>
-                            <td>
-                                <button className="btn-details" onClick={() => handleOpenModal(group.code)}>
-                                    Detalhes
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            {groupedProducts.length > 0 && (
-                <div className="pagination">
-                    <button onClick={() => fetchGroupedProducts(page - 1)} disabled={page === 1}>Anterior</button>
-                    <span>Página {page}</span>
-                    <button onClick={() => fetchGroupedProducts(page + 1)} disabled={groupedProducts.length < 10}>Próxima</button>
-                </div>
+            {groupedProducts.length === 0 ? (
+                <p>Nenhum produto encontrado.</p>
+            ) : (
+                <>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Código</th>
+                                <th>Qtd Total</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {groupedProducts.map((group) => (
+                                <tr key={group.code}>
+                                    <td>{group.productName}</td>
+                                    <td>{group.code}</td>
+                                    <td>{group.totalQuantity}</td>
+                                    <td>
+                                        <button className="btn-details" onClick={() => handleOpenModal(group.code)}>
+                                            Detalhes
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <div className="pagination">
+                        <button onClick={() => fetchGroupedProducts(page - 1)} disabled={page === 1}>Anterior</button>
+                        <span>Página {page}</span>
+                        <button onClick={() => fetchGroupedProducts(page + 1)} disabled={groupedProducts.length < 10}>Próxima</button>
+                    </div>
+                </>
             )}
 
             {modalCode && (

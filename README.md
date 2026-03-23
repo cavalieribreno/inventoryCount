@@ -86,26 +86,19 @@ CREATE DATABASE csinventory;
 USE csinventory;
 
 CREATE TABLE cs_users (
-    usr_id       INT AUTO_INCREMENT PRIMARY KEY,
-    usr_name     VARCHAR(255) NOT NULL,
-    usr_email    VARCHAR(255) NOT NULL UNIQUE,
-    usr_password VARCHAR(255) NOT NULL
+    usr_id            INT AUTO_INCREMENT PRIMARY KEY,
+    usr_name          VARCHAR(100) NOT NULL,
+    usr_email         VARCHAR(150) NOT NULL UNIQUE,
+    usr_password_hash VARCHAR(255) NOT NULL,
+    usr_created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    usr_active        TINYINT(1) DEFAULT 1
 );
 
 CREATE TABLE cs_inventory_sessions (
-    ses_id          INT AUTO_INCREMENT PRIMARY KEY,
-    ses_year        INT NOT NULL,
-    ses_month       INT NULL,
-    ses_status      ENUM('active', 'finished', 'canceled') NOT NULL DEFAULT 'active',
-    ses_started_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    ses_finished_at DATETIME NULL,
-    ses_canceled_at DATETIME NULL,
-    usr_created_by  INT NULL,
-    usr_finished_by INT NULL,
-    usr_canceled_by INT NULL,
-    FOREIGN KEY (usr_created_by) REFERENCES cs_users(usr_id),
-    FOREIGN KEY (usr_finished_by) REFERENCES cs_users(usr_id),
-    FOREIGN KEY (usr_canceled_by) REFERENCES cs_users(usr_id)
+    ses_id     INT AUTO_INCREMENT PRIMARY KEY,
+    ses_year   INT NOT NULL,
+    ses_month  INT NULL,
+    ses_status ENUM('active', 'finished', 'canceled') NOT NULL DEFAULT 'active'
 );
 
 CREATE TABLE cs_products (
@@ -121,6 +114,16 @@ CREATE TABLE cs_inventory_items (
     inv_date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
     ses_id         INT,
     usr_id         INT,
+    FOREIGN KEY (ses_id) REFERENCES cs_inventory_sessions(ses_id),
+    FOREIGN KEY (usr_id) REFERENCES cs_users(usr_id)
+);
+
+CREATE TABLE cs_history (
+    his_id     INT AUTO_INCREMENT PRIMARY KEY,
+    ses_id     INT NOT NULL,
+    usr_id     INT NOT NULL,
+    his_action ENUM('created', 'finished', 'canceled') NOT NULL,
+    his_date   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ses_id) REFERENCES cs_inventory_sessions(ses_id),
     FOREIGN KEY (usr_id) REFERENCES cs_users(usr_id)
 );
@@ -143,17 +146,29 @@ GROUP BY s.ses_id, s.ses_year, s.ses_month, i.pro_code, p.pro_name, i.usr_id, u.
 
 CREATE VIEW vw_inventory_sessions AS
 SELECT
-    s.ses_id,
-    s.ses_year,
-    s.ses_month,
-    s.ses_status,
-    s.ses_started_at,
-    s.ses_finished_at,
-    s.ses_canceled_at,
-    COALESCE(SUM(i.inv_quantity), 0) AS totalqnt_items
-FROM cs_inventory_sessions s
-LEFT JOIN cs_inventory_items i ON i.ses_id = s.ses_id
-GROUP BY s.ses_id, s.ses_year, s.ses_month, s.ses_status, s.ses_started_at, s.ses_finished_at, s.ses_canceled_at;
+    session.ses_id,
+    session.ses_year,
+    session.ses_month,
+    session.ses_status,
+    COALESCE(SUM(items.inv_quantity), 0) AS totalqnt_items,
+    history_created.his_date AS ses_started_at,
+    user_created.usr_name AS created_by_name,
+    history_finished.his_date AS ses_finished_at,
+    user_finished.usr_name AS finished_by_name,
+    history_canceled.his_date AS ses_canceled_at,
+    user_canceled.usr_name AS canceled_by_name
+FROM cs_inventory_sessions session
+LEFT JOIN cs_inventory_items items ON items.ses_id = session.ses_id
+LEFT JOIN cs_history history_created ON history_created.ses_id = session.ses_id AND history_created.his_action = 'created'
+LEFT JOIN cs_users user_created ON history_created.usr_id = user_created.usr_id
+LEFT JOIN cs_history history_finished ON history_finished.ses_id = session.ses_id AND history_finished.his_action = 'finished'
+LEFT JOIN cs_users user_finished ON history_finished.usr_id = user_finished.usr_id
+LEFT JOIN cs_history history_canceled ON history_canceled.ses_id = session.ses_id AND history_canceled.his_action = 'canceled'
+LEFT JOIN cs_users user_canceled ON history_canceled.usr_id = user_canceled.usr_id
+GROUP BY session.ses_id, session.ses_year, session.ses_month, session.ses_status,
+         history_created.his_date, user_created.usr_name,
+         history_finished.his_date, user_finished.usr_name,
+         history_canceled.his_date, user_canceled.usr_name;
 ```
 
 ### 2. Variáveis de ambiente
@@ -288,7 +303,10 @@ O frontend sobe em `http://localhost:5173`.
   "startDate": "2026-03-01T10:00:00",
   "finishDate": null,
   "cancelDate": null,
-  "totalItems": 0
+  "totalItems": 0,
+  "createdByName": "João",
+  "finishedByName": null,
+  "canceledByName": null
 }
 ```
 
@@ -369,6 +387,8 @@ Todas as queries usam **parâmetros nomeados** para prevenção de SQL Injection
 
 As views `vw_inventory_items` e `vw_inventory_sessions` centralizam as agregações no banco, evitando lógica de cálculo no código da aplicação.
 
+A tabela `cs_history` registra todas as ações de sessão (criação, finalização, cancelamento) com data e usuário responsável, substituindo as colunas de rastreamento que antes ficavam diretamente na tabela de sessões.
+
 ### Autenticação
 
 - Senhas armazenadas com **BCrypt** (hash + salt)
@@ -392,11 +412,11 @@ As views `vw_inventory_items` e `vw_inventory_sessions` centralizam as agregaç�
 - Formulário para criar um novo inventário com seleção de mês (opcional) e ano (só disponível quando não há ativo)
 - Se não selecionar mês, cria inventário **anual** (exibe "Anual" na tabela)
 - Filtros por ano, mês e status
-- Tabela paginada com todos os inventários: ID, ano, mês, status, datas e **total de itens**
+- Tabela paginada com todos os inventários: ano, mês, status, início e **total de itens**
 - Clique na linha para ver os produtos da sessão
 
 ### Produtos da Sessão (`/sessions/:sessionId`)
-- Informações da sessão (status, início, total de itens)
+- Informações da sessão (status, início, criado por, total de itens, finalizado/cancelado por — quando aplicável)
 - Formulário de inserção de produto (código + quantidade) — apenas para sessões ativas
 - Filtros por nome e código do produto
 - Tabela paginada com produtos **agrupados por código**: nome, código, quantidade total

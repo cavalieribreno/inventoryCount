@@ -14,13 +14,15 @@ public class SessionRepository : ISessionRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdGetActiveSession = @"SELECT ses_id, ses_year, ses_month, ses_status, ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items
-            FROM vw_inventory_sessions 
-            WHERE ses_status = 'active' 
+            string cmdGetActiveSession = @"SELECT ses_id, ses_year, ses_month, ses_status,
+            ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items,
+            created_by_name, finished_by_name, canceled_by_name
+            FROM vw_inventory_sessions
+            WHERE ses_status = 'active'
             LIMIT 1";
             using MySqlCommand command = new MySqlCommand(cmdGetActiveSession, connection);
             using var reader = (MySqlDataReader)await command.ExecuteReaderAsync();
-            
+
             if (await reader.ReadAsync())
             {
                 return new SessionResponse
@@ -32,7 +34,10 @@ public class SessionRepository : ISessionRepository
                     StartDate = reader.GetDateTime("ses_started_at"),
                     FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
                     CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at"),
-                    TotalItems = reader.GetInt32("totalqnt_items")
+                    TotalItems = reader.GetInt32("totalqnt_items"),
+                    CreatedByName = reader.GetString("created_by_name"),
+                    FinishedByName = reader.IsDBNull(reader.GetOrdinal("finished_by_name")) ? null : reader.GetString("finished_by_name"),
+                    CanceledByName = reader.IsDBNull(reader.GetOrdinal("canceled_by_name")) ? null : reader.GetString("canceled_by_name")
                 };
             }
             return null;
@@ -77,21 +82,26 @@ public class SessionRepository : ISessionRepository
             // create a new session
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
-            string cmdStartSession = @"INSERT INTO cs_inventory_sessions (ses_year, usr_created_by, ses_month) VALUES (@ses_year, @usr_created_by, @ses_month)";
+            string cmdStartSession = @"INSERT INTO cs_inventory_sessions (ses_year, ses_month) VALUES (@ses_year, @ses_month)";
             using MySqlCommand startSessioncommand = new MySqlCommand(cmdStartSession, connection);
             startSessioncommand.Parameters.AddWithValue("@ses_year", request.Year);
-            startSessioncommand.Parameters.AddWithValue("@usr_created_by", userId);
-            
-            // if month is null, set parameter to DBNull.Value to insert NULL in the database
             startSessioncommand.Parameters.AddWithValue("@ses_month", request.Month.HasValue ? request.Month.Value : DBNull.Value);
             await startSessioncommand.ExecuteNonQueryAsync();
 
-            // Get the ID of the newly created session (mysql last inserted id)
             int newSessionId = (int)startSessioncommand.LastInsertedId;
-            
-            // get to return the created session details
-            string cmdGetSession = @"SELECT ses_id, ses_year, ses_month, ses_status, ses_started_at, ses_finished_at, ses_canceled_at, usr_created_by
-            FROM cs_inventory_sessions 
+
+            // insert history record for session creation
+            string cmdInsertHistory = @"INSERT INTO cs_history (ses_id, usr_id, his_action) VALUES (@ses_id, @usr_id, 'created')";
+            using MySqlCommand historyCommand = new MySqlCommand(cmdInsertHistory, connection);
+            historyCommand.Parameters.AddWithValue("@ses_id", newSessionId);
+            historyCommand.Parameters.AddWithValue("@usr_id", userId);
+            await historyCommand.ExecuteNonQueryAsync();
+
+            // return created session from view
+            string cmdGetSession = @"SELECT ses_id, ses_year, ses_month, ses_status,
+            ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items,
+            created_by_name, finished_by_name, canceled_by_name
+            FROM vw_inventory_sessions
             WHERE ses_id = @ses_id";
             using MySqlCommand getSessionCommand = new MySqlCommand(cmdGetSession, connection);
             getSessionCommand.Parameters.AddWithValue("@ses_id", newSessionId);
@@ -104,10 +114,13 @@ public class SessionRepository : ISessionRepository
                     Year = reader.GetInt32("ses_year"),
                     Month = reader.IsDBNull(reader.GetOrdinal("ses_month")) ? null : reader.GetInt32("ses_month"),
                     Status = reader.GetString("ses_status"),
-                    CreatedBy = reader.GetInt32("usr_created_by"),
                     StartDate = reader.GetDateTime("ses_started_at"),
                     FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
-                    CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at")
+                    CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at"),
+                    TotalItems = reader.GetInt32("totalqnt_items"),
+                    CreatedByName = reader.GetString("created_by_name"),
+                    FinishedByName = reader.IsDBNull(reader.GetOrdinal("finished_by_name")) ? null : reader.GetString("finished_by_name"),
+                    CanceledByName = reader.IsDBNull(reader.GetOrdinal("canceled_by_name")) ? null : reader.GetString("canceled_by_name")
                 };
             }
             return null;
@@ -125,12 +138,20 @@ public class SessionRepository : ISessionRepository
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
             string cmdFinishSession = @"UPDATE cs_inventory_sessions
-            SET ses_status = 'finished', ses_finished_at = NOW(), usr_finished_by = @userId
+            SET ses_status = 'finished'
             WHERE ses_id = @ses_id AND ses_status = 'active'";
             using MySqlCommand finishSessionCommand = new MySqlCommand(cmdFinishSession, connection);
             finishSessionCommand.Parameters.AddWithValue("@ses_id", sessionId);
-            finishSessionCommand.Parameters.AddWithValue("@userId", userId);
             int rowsAffected = await finishSessionCommand.ExecuteNonQueryAsync();
+
+            if (rowsAffected > 0)
+            {
+                string cmdInsertHistory = @"INSERT INTO cs_history (ses_id, usr_id, his_action) VALUES (@ses_id, @usr_id, 'finished')";
+                using MySqlCommand historyCommand = new MySqlCommand(cmdInsertHistory, connection);
+                historyCommand.Parameters.AddWithValue("@ses_id", sessionId);
+                historyCommand.Parameters.AddWithValue("@usr_id", userId);
+                await historyCommand.ExecuteNonQueryAsync();
+            }
             return rowsAffected > 0;
         } catch (Exception ex)
         {
@@ -146,12 +167,21 @@ public class SessionRepository : ISessionRepository
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
             string cmdCancelSession = @"UPDATE cs_inventory_sessions
-            SET ses_status = 'canceled', ses_canceled_at = NOW(), usr_canceled_by = @userId
+            SET ses_status = 'canceled'
             WHERE ses_id = @ses_id AND ses_status = 'active'";
             using MySqlCommand cancelSessionCommand = new MySqlCommand(cmdCancelSession, connection);
             cancelSessionCommand.Parameters.AddWithValue("@ses_id", sessionId);
-            cancelSessionCommand.Parameters.AddWithValue("@userId", userId);
             int rowsAffected = await cancelSessionCommand.ExecuteNonQueryAsync();
+
+            if (rowsAffected > 0)
+            {
+                string cmdInsertHistory = @"INSERT INTO cs_history (ses_id, usr_id, his_action) VALUES (@ses_id, @usr_id, 'canceled')";
+                using MySqlCommand historyCommand = new MySqlCommand(cmdInsertHistory, connection);
+                historyCommand.Parameters.AddWithValue("@ses_id", sessionId);
+                historyCommand.Parameters.AddWithValue("@usr_id", userId);
+                await historyCommand.ExecuteNonQueryAsync();
+            }
+
             return rowsAffected > 0;
         } catch (Exception ex)
         {
@@ -167,7 +197,9 @@ public class SessionRepository : ISessionRepository
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
             using MySqlCommand command = new MySqlCommand();
-            string cmdGetAllSessions = @"SELECT ses_id, ses_year, ses_month, ses_status, ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items
+            string cmdGetAllSessions = @"SELECT ses_id, ses_year, ses_month, ses_status,
+            ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items,
+            created_by_name, finished_by_name, canceled_by_name
             FROM vw_inventory_sessions WHERE 1=1";
             // Dynamic query construction based on filter
             if(filter.Year.HasValue)
@@ -204,7 +236,10 @@ public class SessionRepository : ISessionRepository
                     StartDate = reader.GetDateTime("ses_started_at"),
                     FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
                     CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at"),
-                    TotalItems = reader.GetInt32("totalqnt_items")
+                    TotalItems = reader.GetInt32("totalqnt_items"),
+                    CreatedByName = reader.GetString("created_by_name"),
+                    FinishedByName = reader.IsDBNull(reader.GetOrdinal("finished_by_name")) ? null : reader.GetString("finished_by_name"),
+                    CanceledByName = reader.IsDBNull(reader.GetOrdinal("canceled_by_name")) ? null : reader.GetString("canceled_by_name")
                 });
             }
             return sessions;

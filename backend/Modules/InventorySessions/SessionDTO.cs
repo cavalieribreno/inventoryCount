@@ -26,6 +26,8 @@ public class SessionResponse
     public DateTime StartDate { get; set; }
     public DateTime? FinishDate { get; set; }
     public DateTime? CancelDate { get; set; }
-    public int CreatedBy { get; set; }
     public int TotalItems { get; set; }
+    public string? CreatedByName { get; set; }
+    public string? FinishedByName { get; set; }
+    public string? CanceledByName { get; set; }
 }

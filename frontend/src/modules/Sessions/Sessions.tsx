@@ -204,42 +204,38 @@ function Sessions() {
                 <button onClick={() => fetchAllSessions(1)}>Filtrar</button>
             </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Ano</th>
-                        <th>Mês</th>
-                        <th>Status</th>
-                        <th>Início</th>
-                        <th>Fim</th>
-                        <th>Cancelado em</th>
-                        <th>Total Itens</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sessions.length === 0 ? (
-                        <tr>
-                            <td colSpan={8} className="empty-row">Nenhum inventário encontrado.</td>
-                        </tr>
-                    ) : sessions.map((session) => (
-                        <tr key={session.id} onClick={() => navigate(`/sessions/${session.id}`)} style={{ cursor: "pointer" }}>
-                            <td>{session.year}</td>
-                            <td>{session.month ? monthNames[session.month] : "Anual"}</td>
-                            <td>{statusMap[session.status] ?? session.status}</td>
-                            <td>{new Date(session.startDate).toLocaleString()}</td>
-                            <td>{session.finishDate ? new Date(session.finishDate).toLocaleString() : "—"}</td>
-                            <td>{session.cancelDate ? new Date(session.cancelDate).toLocaleString() : "—"}</td>
-                            <td>{session.totalItems}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            {sessions.length > 0 && (
-                <div className="pagination">
-                    <button onClick={() => fetchAllSessions(page - 1)} disabled={page === 1}>Anterior</button>
-                    <span>Página {page}</span>
-                    <button onClick={() => fetchAllSessions(page + 1)} disabled={sessions.length < 10}>Próxima</button>
-                </div>
+            {sessions.length === 0 ? (
+                <p>Nenhum inventário encontrado.</p>
+            ) : (
+                <>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ano</th>
+                                <th>Mês</th>
+                                <th>Status</th>
+                                <th>Início</th>
+                                <th>Total Itens</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sessions.map((session) => (
+                                <tr key={session.id} onClick={() => navigate(`/sessions/${session.id}`)} style={{ cursor: "pointer" }}>
+                                    <td>{session.year}</td>
+                                    <td>{session.month ? monthNames[session.month] : "Anual"}</td>
+                                    <td>{statusMap[session.status] ?? session.status}</td>
+                                    <td>{new Date(session.startDate).toLocaleString()}</td>
+                                    <td>{session.totalItems}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <div className="pagination">
+                        <button onClick={() => fetchAllSessions(page - 1)} disabled={page === 1}>Anterior</button>
+                        <span>Página {page}</span>
+                        <button onClick={() => fetchAllSessions(page + 1)} disabled={sessions.length < 10}>Próxima</button>
+                    </div>
+                </>
             )}
         </div>
     )
