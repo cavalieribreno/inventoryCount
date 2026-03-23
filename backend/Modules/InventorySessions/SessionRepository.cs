@@ -82,10 +82,14 @@ public class SessionRepository : ISessionRepository
             // create a new session
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
+            // transaction: if one query fails, all queries are rolled back
+            using MySqlTransaction transaction = await connection.BeginTransactionAsync();
+
             string cmdStartSession = @"INSERT INTO cs_inventory_sessions (ses_year, ses_month) VALUES (@ses_year, @ses_month)";
             using MySqlCommand startSessioncommand = new MySqlCommand(cmdStartSession, connection);
             startSessioncommand.Parameters.AddWithValue("@ses_year", request.Year);
             startSessioncommand.Parameters.AddWithValue("@ses_month", request.Month.HasValue ? request.Month.Value : DBNull.Value);
+            startSessioncommand.Transaction = transaction;
             await startSessioncommand.ExecuteNonQueryAsync();
 
             int newSessionId = (int)startSessioncommand.LastInsertedId;
@@ -95,7 +99,11 @@ public class SessionRepository : ISessionRepository
             using MySqlCommand historyCommand = new MySqlCommand(cmdInsertHistory, connection);
             historyCommand.Parameters.AddWithValue("@ses_id", newSessionId);
             historyCommand.Parameters.AddWithValue("@usr_id", userId);
+            historyCommand.Transaction = transaction;
             await historyCommand.ExecuteNonQueryAsync();
+
+            // commit transaction before reading from view
+            await transaction.CommitAsync();
 
             // return created session from view
             string cmdGetSession = @"SELECT ses_id, ses_year, ses_month, ses_status,
@@ -137,11 +145,14 @@ public class SessionRepository : ISessionRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
+            // transaction: if one query fails, all queries are rolled back
+            using MySqlTransaction transaction = await connection.BeginTransactionAsync();
             string cmdFinishSession = @"UPDATE cs_inventory_sessions
             SET ses_status = 'finished'
             WHERE ses_id = @ses_id AND ses_status = 'active'";
             using MySqlCommand finishSessionCommand = new MySqlCommand(cmdFinishSession, connection);
             finishSessionCommand.Parameters.AddWithValue("@ses_id", sessionId);
+            finishSessionCommand.Transaction = transaction;
             int rowsAffected = await finishSessionCommand.ExecuteNonQueryAsync();
 
             if (rowsAffected > 0)
@@ -150,8 +161,10 @@ public class SessionRepository : ISessionRepository
                 using MySqlCommand historyCommand = new MySqlCommand(cmdInsertHistory, connection);
                 historyCommand.Parameters.AddWithValue("@ses_id", sessionId);
                 historyCommand.Parameters.AddWithValue("@usr_id", userId);
+                historyCommand.Transaction = transaction;
                 await historyCommand.ExecuteNonQueryAsync();
             }
+            await transaction.CommitAsync();
             return rowsAffected > 0;
         } catch (Exception ex)
         {
@@ -166,11 +179,16 @@ public class SessionRepository : ISessionRepository
         {
             using MySqlConnection connection = DatabaseConnection.Connection();
             await connection.OpenAsync();
+
+            // transaction: if one query fails, all queries are rolled back
+            using MySqlTransaction transaction = await connection.BeginTransactionAsync();
+
             string cmdCancelSession = @"UPDATE cs_inventory_sessions
             SET ses_status = 'canceled'
             WHERE ses_id = @ses_id AND ses_status = 'active'";
             using MySqlCommand cancelSessionCommand = new MySqlCommand(cmdCancelSession, connection);
             cancelSessionCommand.Parameters.AddWithValue("@ses_id", sessionId);
+            cancelSessionCommand.Transaction = transaction;
             int rowsAffected = await cancelSessionCommand.ExecuteNonQueryAsync();
 
             if (rowsAffected > 0)
@@ -179,9 +197,10 @@ public class SessionRepository : ISessionRepository
                 using MySqlCommand historyCommand = new MySqlCommand(cmdInsertHistory, connection);
                 historyCommand.Parameters.AddWithValue("@ses_id", sessionId);
                 historyCommand.Parameters.AddWithValue("@usr_id", userId);
+                historyCommand.Transaction = transaction;
                 await historyCommand.ExecuteNonQueryAsync();
             }
-
+            await transaction.CommitAsync();
             return rowsAffected > 0;
         } catch (Exception ex)
         {
