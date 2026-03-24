@@ -26,6 +26,17 @@ public class SessionController : ControllerBase
         }
         return Ok(activeSession);
     }
+    // Endpoint to get a session by id
+    [HttpGet("{sessionId}")]
+    public async Task<IActionResult> GetSessionById(int sessionId)
+    {
+        var session = await _sessionService.GetSessionById(sessionId);
+        if(session == null)
+        {
+            return NotFound("Session not found.");
+        }
+        return Ok(session);
+    }
     // Endpoint to start a new inventory session
     [HttpPost("create")]
     public async Task<IActionResult> CreateSession([FromBody]SessionStartRequest request)

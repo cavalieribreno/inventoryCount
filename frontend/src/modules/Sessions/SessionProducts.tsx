@@ -23,14 +23,13 @@ function SessionProducts() {
     const [filterCode, setFilterCode] = useState("");
     const [page, setPage] = useState(1);
 
-    // function to fetch session info from all sessions
+    // function to fetch session info by id
     const fetchSession = async () => {
         try {
-            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/getall`);
+            const response = await apiFetch(`${import.meta.env.VITE_API_URL}/api/sessions/${sessionId}`);
             if (response.ok) {
-                const sessions: Session[] = await response.json();
-                const found = sessions.find(s => s.id === Number(sessionId));
-                setSession(found || null);
+                const data: Session = await response.json();
+                setSession(data);
             }
         } catch (err: unknown) {
             setErrorMsg(err instanceof Error ? err.message : String(err ?? "Erro ao buscar sessão"));
@@ -168,7 +167,7 @@ function SessionProducts() {
             </div>
 
             {groupedProducts.length === 0 ? (
-                <p>Nenhum produto encontrado.</p>
+                <p className="empty-message">Nenhum produto encontrado.</p>
             ) : (
                 <>
                     <table>

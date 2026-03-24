@@ -205,7 +205,7 @@ function Sessions() {
             </div>
 
             {sessions.length === 0 ? (
-                <p>Nenhum inventário encontrado.</p>
+                <p className="empty-message">Nenhum inventário encontrado.</p>
             ) : (
                 <>
                     <table>

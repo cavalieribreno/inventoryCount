@@ -47,6 +47,46 @@ public class SessionRepository : ISessionRepository
             throw;
         }
     }
+    // Method to get a session by id
+    public async Task<SessionResponse?> GetSessionById(int sessionId)
+    {
+        try
+        {
+            using MySqlConnection connection = DatabaseConnection.Connection();
+            await connection.OpenAsync();
+            string cmdGetSessionById = @"SELECT ses_id, ses_year, ses_month, ses_status,
+            ses_started_at, ses_finished_at, ses_canceled_at, totalqnt_items,
+            created_by_name, finished_by_name, canceled_by_name
+            FROM vw_inventory_sessions
+            WHERE ses_id = @ses_id";
+            using MySqlCommand command = new MySqlCommand(cmdGetSessionById, connection);
+            command.Parameters.AddWithValue("@ses_id", sessionId);
+            using var reader = (MySqlDataReader)await command.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new SessionResponse
+                {
+                    Id = reader.GetInt32("ses_id"),
+                    Year = reader.GetInt32("ses_year"),
+                    Month = reader.IsDBNull(reader.GetOrdinal("ses_month")) ? null : reader.GetInt32("ses_month"),
+                    Status = reader.GetString("ses_status"),
+                    StartDate = reader.GetDateTime("ses_started_at"),
+                    FinishDate = reader.IsDBNull(reader.GetOrdinal("ses_finished_at")) ? null : reader.GetDateTime("ses_finished_at"),
+                    CancelDate = reader.IsDBNull(reader.GetOrdinal("ses_canceled_at")) ? null : reader.GetDateTime("ses_canceled_at"),
+                    TotalItems = reader.GetInt32("totalqnt_items"),
+                    CreatedByName = reader.GetString("created_by_name"),
+                    FinishedByName = reader.IsDBNull(reader.GetOrdinal("finished_by_name")) ? null : reader.GetString("finished_by_name"),
+                    CanceledByName = reader.IsDBNull(reader.GetOrdinal("canceled_by_name")) ? null : reader.GetString("canceled_by_name")
+                };
+            }
+            return null;
+        } catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting session by id: {ex.Message}");
+            throw;
+        }
+    }
     // Method to check if a session exists for the given year and month (not canceled)
     public async Task<bool> SessionExistsByYearMonth(int year, int? month)
     {

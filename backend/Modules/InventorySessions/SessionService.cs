@@ -16,6 +16,11 @@ public class SessionService : ISessionService
     {
         return await _sessionRepository.GetActiveSession();
     }
+    // Method to get a session by id
+    public async Task<SessionResponse?> GetSessionById(int sessionId)
+    {
+        return await _sessionRepository.GetSessionById(sessionId);
+    }
     // Method to start a new inventory session
     public async Task<SessionResponse> CreateSession(SessionStartRequest request, int userId)
     {
