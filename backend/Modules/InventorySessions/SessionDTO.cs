@@ -22,7 +22,7 @@ public class SessionResponse
     public int Id { get; set; }
     public int Year { get; set; }
     public int? Month { get; set; }
-    public String? Status { get; set; }
+    public string? Status { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? FinishDate { get; set; }
     public DateTime? CancelDate { get; set; }

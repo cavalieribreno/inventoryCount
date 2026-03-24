@@ -173,7 +173,7 @@ GROUP BY session.ses_id, session.ses_year, session.ses_month, session.ses_status
 
 ### 2. Variáveis de ambiente
 
-Edite `backend/.env`:
+Edite `backend/.env` (backend):
 
 ```env
 # Banco de dados
@@ -191,6 +191,12 @@ BACKEND_URL=http://localhost:5144
 JWT_SECRET=sua-chave-secreta
 JWT_ISSUER=http://localhost:5144
 JWT_AUDIENCE=http://localhost:5173
+```
+
+Crie `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:5144
 ```
 
 ---
@@ -263,6 +269,7 @@ O frontend sobe em `http://localhost:5173`.
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `GET` | `/api/sessions/active` | Retorna o inventário ativo atual |
+| `GET` | `/api/sessions/{sessionId}` | Retorna um inventário pelo ID |
 | `POST` | `/api/sessions/create` | Cria um novo inventário |
 | `PATCH` | `/api/sessions/{sessionId}/finish` | Finaliza o inventário ativo |
 | `PATCH` | `/api/sessions/{sessionId}/cancel` | Cancela o inventário ativo |
@@ -326,6 +333,10 @@ O frontend sobe em `http://localhost:5173`.
 | `GET` | `/api/products/session/{sessionId}/grouped` | Lista produtos agrupados por código com quantidade total |
 | `GET` | `/api/products/session/{sessionId}/details/{code}` | Lista todas as inserções individuais de um produto na sessão |
 | `DELETE` | `/api/products/delete/{productId}` | Remove uma entrada de inventário |
+
+> Regras:
+> - O código do produto deve existir na tabela `cs_products`.
+> - A sessão deve estar ativa para inserir, excluir produtos.
 
 **POST /api/products/insert — body:**
 ```json

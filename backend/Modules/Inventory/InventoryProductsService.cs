@@ -31,6 +31,11 @@ public class InventoryProductsService : IInventoryProductsService
         {
             throw new InvalidOperationException("No active inventory session found for the provided session ID.");
         }
+        // check if product exists in products table before inserting
+        if(!await _productsrepository.ProductExistsByCode(productCode))
+        {
+            throw new InvalidOperationException("Product code not found.");
+        }
         var result = await _productsrepository.InventoryInsertProduct(productCode, productQuantity, sessionId, userId);
         return result;
     }

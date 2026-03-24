@@ -31,6 +31,24 @@ public class InventoryProductsRepository : IInventoryProductsRepository
             return false;
         }
     }
+    // Method to check if a product exists by code
+    public async Task<bool> ProductExistsByCode(string code)
+    {
+        try
+        {
+            using MySqlConnection connection = DatabaseConnection.Connection();
+            await connection.OpenAsync();
+            string cmdProductExists = @"SELECT COUNT(*) FROM cs_products WHERE pro_code = @code";
+            using MySqlCommand command = new MySqlCommand(cmdProductExists, connection);
+            command.Parameters.AddWithValue("@code", code);
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(result) > 0;
+        } catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking product by code: {ex.Message}");
+            throw;
+        }
+    }
     // Method to get products grouped
     public async Task<List<SessionGroupedProductsResponse>> GetSessionGroupedProducts(int sessionId, SessionProductsFilterRequest filter)
     {
