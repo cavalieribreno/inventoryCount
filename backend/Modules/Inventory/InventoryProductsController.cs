@@ -24,17 +24,27 @@ public class InventoryProductsController : ControllerBase
     {
         if (!_productsService.ValidateProduct(productRequest.Code!, productRequest.Quantity, productRequest.SessionId))
         {
-            return BadRequest("Invalid product code, quantity or year.");
+            return BadRequest("Invalid product code or quantity");
         }
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-        var result = await _productsService.InventoryInsertProduct(productRequest.Code!, productRequest.Quantity, productRequest.SessionId, userId);
-        if (result)
+        // get userId from token, parse to int and assign via "out"
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if(userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
         {
-            return Ok("Product inserted successfully.");
+            return Unauthorized("Invalid token");
         }
-        else
+        // catch service exceptions and return error to users
+        try
         {
+            var result = await _productsService.InventoryInsertProduct(productRequest.Code!, productRequest.Quantity, productRequest.SessionId, userId);
+            if (result)
+            {
+                return Ok("Product inserted successfully.");
+            }
             return StatusCode(500, "An error occurred while inserting the product.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
     // Endpoint to get grouped products of a session

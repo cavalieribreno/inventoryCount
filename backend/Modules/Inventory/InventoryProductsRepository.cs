@@ -64,7 +64,7 @@ public class InventoryProductsRepository : IInventoryProductsRepository
             WHERE i.ses_id = @sessionId";
             command.Parameters.AddWithValue("@sessionId", sessionId);
 
-            // Dinamic query construction based on filter
+            // Dynamic query construction based on filter
             if (!string.IsNullOrEmpty(filter.ProductName))
             {
                 cmdGroupedProducts += " AND p.pro_name LIKE @productName";

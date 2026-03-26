@@ -41,19 +41,36 @@ public class SessionController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> CreateSession([FromBody]SessionStartRequest request)
     {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-        var result = await _sessionService.CreateSession(request, userId);
-        if(result == null)
+        // get userId from token, parse to int and set via "out"
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
         {
-            return BadRequest("Failed to create session. Please check the input data.");
+            return Unauthorized("Invalid token");
         }
-        return Ok(result);
+        // catch service exceptions and return error to users
+        try
+        {
+            var result = await _sessionService.CreateSession(request, userId);
+            if(result == null)
+            {
+                return BadRequest("Failed to create session.");
+            }
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
     // Endpoint to finish the active inventory session
     [HttpPatch("{sessionId}/finish")]
     public async Task<IActionResult> FinishSession(int sessionId)
     {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if(userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+        {
+            return Unauthorized("Invalid token");
+        }
         var result = await _sessionService.FinishSession(sessionId, userId);
         if(!result)
         {
@@ -65,7 +82,11 @@ public class SessionController : ControllerBase
     [HttpPatch("{sessionId}/cancel")]
     public async Task<IActionResult> CancelSession(int sessionId)
     {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+        {
+            return Unauthorized("Invalid token");
+        }
         var result = await _sessionService.CancelSession(sessionId, userId);
         if(!result)
         {
