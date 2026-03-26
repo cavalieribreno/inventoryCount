@@ -18,11 +18,26 @@ public class InventoryProductsController : ControllerBase
     {
         _productsService = productsService;
     }
+    // Endpoint to get product from catalog by code
+    [HttpGet("catalog")]
+    public async Task<IActionResult> GetProductByCode([FromQuery] string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return BadRequest("Product code is required.");
+        }
+        var product = await _productsService.GetProductByCode(code);
+        if (product == null)
+        {
+            return NotFound("Product not found.");
+        }
+        return Ok(product);
+    }
     // Endpoint to insert a new product
     [HttpPost("insert")]
     public async Task<IActionResult> InventoryInsertProduct([FromBody] ProductsInsertRequest productRequest)
     {
-        if (!_productsService.ValidateProduct(productRequest.Code!, productRequest.Quantity, productRequest.SessionId))
+        if (!_productsService.ValidateProduct(productRequest.Code!, productRequest.Quantity))
         {
             return BadRequest("Invalid product code or quantity");
         }

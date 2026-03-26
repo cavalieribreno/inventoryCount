@@ -15,13 +15,18 @@ public class InventoryProductsService : IInventoryProductsService
         _sessionrepository = sessionrepository;
     }
     // Method to validate product details
-    public bool ValidateProduct(string productCode, int productQuantity, int sessionId)
+    public bool ValidateProduct(string productCode, int productQuantity)
     {
         if (string.IsNullOrWhiteSpace(productCode) || productQuantity <= 0)
         {
             return false;
         }
         return true;
+    }
+    // Method to get product from catalog by code
+    public async Task<CatalogProductResponse?> GetProductByCode(string code)
+    {
+        return await _productsrepository.GetProductByCode(code);
     }
     // Method to insert a product using the repository
     public async Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId, int userId)
@@ -32,7 +37,7 @@ public class InventoryProductsService : IInventoryProductsService
             throw new InvalidOperationException("No active inventory session found for the provided session ID.");
         }
         // check if product exists in products table before inserting
-        if(!await _productsrepository.ProductExistsByCode(productCode))
+        if(await _productsrepository.GetProductByCode(productCode) == null)
         {
             throw new InvalidOperationException("Product code not found.");
         }

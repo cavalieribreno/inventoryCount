@@ -8,6 +8,32 @@ namespace Csinv.InventoryProducts.Repository;
 // Repository class for product operations
 public class InventoryProductsRepository : IInventoryProductsRepository
 {
+    // Method to get a product from catalog by code (returns null if not found)
+    public async Task<CatalogProductResponse?> GetProductByCode(string code)
+    {
+        try
+        {
+            using MySqlConnection connection = DatabaseConnection.Connection();
+            await connection.OpenAsync();
+            string cmdGetProduct = @"SELECT pro_code, pro_name FROM cs_products WHERE pro_code = @code";
+            using MySqlCommand command = new MySqlCommand(cmdGetProduct, connection);
+            command.Parameters.AddWithValue("@code", code);
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new CatalogProductResponse
+                {
+                    Code = reader["pro_code"].ToString(),
+                    ProductName = reader["pro_name"].ToString()
+                };
+            }
+            return null;
+        } catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting product by code: {ex.Message}");
+            throw;
+        }
+    }
     // Method to insert a product into the database inventory table
     public async Task<bool> InventoryInsertProduct(string productCode, int productQuantity, int sessionId, int userId)
     {
@@ -29,24 +55,6 @@ public class InventoryProductsRepository : IInventoryProductsRepository
         {
             Console.WriteLine($"Error inserting product: {ex.Message}");
             return false;
-        }
-    }
-    // Method to check if a product exists by code
-    public async Task<bool> ProductExistsByCode(string code)
-    {
-        try
-        {
-            using MySqlConnection connection = DatabaseConnection.Connection();
-            await connection.OpenAsync();
-            string cmdProductExists = @"SELECT COUNT(*) FROM cs_products WHERE pro_code = @code";
-            using MySqlCommand command = new MySqlCommand(cmdProductExists, connection);
-            command.Parameters.AddWithValue("@code", code);
-            var result = await command.ExecuteScalarAsync();
-            return Convert.ToInt32(result) > 0;
-        } catch (Exception ex)
-        {
-            Console.WriteLine($"Error checking product by code: {ex.Message}");
-            throw;
         }
     }
     // Method to get products grouped
