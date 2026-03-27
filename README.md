@@ -329,6 +329,7 @@ O frontend sobe em `http://localhost:5173`.
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
+| `GET` | `/api/products/catalog?code={code}` | Busca um produto do catálogo pelo código |
 | `POST` | `/api/products/insert` | Insere um produto no inventário |
 | `GET` | `/api/products/session/{sessionId}/grouped` | Lista produtos agrupados por código com quantidade total |
 | `GET` | `/api/products/session/{sessionId}/details/{code}` | Lista todas as inserções individuais de um produto na sessão |
@@ -337,6 +338,14 @@ O frontend sobe em `http://localhost:5173`.
 > Regras:
 > - O código do produto deve existir na tabela `cs_products`.
 > - A sessão deve estar ativa para inserir, excluir produtos.
+
+**GET /api/products/catalog — resposta (200):**
+```json
+{
+  "code": "ABC123",
+  "productName": "Baton"
+}
+```
 
 **POST /api/products/insert — body:**
 ```json
